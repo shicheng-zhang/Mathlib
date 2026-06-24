@@ -12,7 +12,9 @@
 
 `v2` through `v8` were **100% vibe-coded**. I acted as the Prompt Engineer, while an AI pair-programmer wrote, compiled, and debugged the actual C syntax, Python fuzzing scripts, and CMake configurations.
 
-I directed the mathematical constraints, discovered the edge-case failures, and designed the simpler algorithmic architecture.
+I directed the mathematical constraints, discovered the edge-case failures, and designed the simpler algorithmic architecture. The rest of the more advanced algorithms was pure vibe coding.
+
+I hope to learn and refine more math skills from this anyways :)
 
 ---
 
