@@ -4,7 +4,6 @@
 ![C99](https://img.shields.io/badge/C-C99-blue)
 ![CMake](https://img.shields.io/badge/build-CMake-green)
 ![Tests](https://img.shields.io/badge/tests-1300%2B%20Fuzzed-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-yellow)
 
 `libmathc` is a comprehensive, from-scratch mathematical library written in C. It covers everything from basic combinatorics and $O(1)$ trigonometry to hardware-level AVX SIMD intrinsics, IEEE 754 bit-manipulation, and advanced NxN matrix decompositions (LU/QR/Eigenvalues).
 
