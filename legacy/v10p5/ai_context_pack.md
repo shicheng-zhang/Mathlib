@@ -1,6 +1,6 @@
 # PROJECT BUNDLE: v10p5
 Root Directory: /home/magi-01/Desktop/work/programming/mathlib/bleeding/v10p5
-Generated: Tue Jul  7 09:10:50 PM MDT 2026
+Generated: Tue Jul  7 09:43:27 PM MDT 2026
 
 ## 1. DIRECTORY HIERARCHY
 ```text
@@ -117,7 +117,17 @@ elseif(MATHLIB_PROFILE STREQUAL "EMBEDDED")
     add_compile_definitions(MATHLIB_PROFILE_EMBEDDED)
 endif()
 
-add_compile_options(-O3 -march=native -Wall -Wextra -fno-fast-math -ffp-contract=off)
+option(MATHLIB_NATIVE "Enable -march=native (Warning: Breaks binary portability)" OFF)
+if(MATHLIB_NATIVE)
+    option(MATHLIB_NATIVE "Enable -march=native (Warning: Breaks binary portability)" OFF)
+if(MATHLIB_NATIVE)
+    add_compile_options(-O3 -march=native -Wall -Wextra -fno-fast-math -ffp-contract=off)
+else()
+    add_compile_options(-O3 -Wall -Wextra -fno-fast-math -ffp-contract=off)
+endif()
+else()
+    add_compile_options(-O3 -Wall -Wextra -fno-fast-math -ffp-contract=off)
+endif()
 
 add_library(mathc STATIC src/mathlib.c)
 target_include_directories(mathc PUBLIC 
@@ -161,7 +171,7 @@ Location: `README.md`
 ![Invariant Audited](https://img.shields.io/badge/Fuzzer-65,000%2B%20Assertions-orange.svg)
 ![Bare Metal](https://img.shields.io/badge/SIMD-AVX2%20Optimized-red.svg)
 
-**MathLib V1.0** is a production-grade, zero-dependency, bare-metal C99 scientific computing engine. 
+**MathLib V1.0** is a high-performance bare-metal, zero-dependency, bare-metal C99 scientific computing engine. 
 
 Engineered to eliminate `<math.h>` dependencies, eradicate heap allocations in hot loops, and provide cycle-accurate determinism for high-throughput pipelines.
 
@@ -3122,7 +3132,7 @@ static int g_failed = 0;
     else { g_failed++; printf("  [FAIL] %s (Line %d)\n", msg, __LINE__); } \
 } while(0)
 
-#define ASSERT_NEAR(a, b, eps, msg) ASSERT_TRUE(ml_ml_ml_fabs((double)(a) - (double)(b)) < (eps), msg)
+#define ASSERT_NEAR(a, b, eps, msg) ASSERT_TRUE(ml_ml_ml_ml_ml_fabs((double)(a) - (double)(b)) < (eps), msg)
 
 static inline int test_harness_summary(const char* suite_name) {
     printf("[%s] Passed: %d, Failed: %d\n", suite_name, g_passed, g_failed);
