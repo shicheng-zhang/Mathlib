@@ -1,0 +1,29 @@
+# Build artifacts
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# Binaries (anchored to prevent ignoring source directories named 'test')
+/test_main
+/test_core
+/test_trig
+/test_linalg
+/test_dsp
+/fuzz_god_mode
+/fuzz_boundary
+/bench
+*.o
+*.a
+*.so
+*.dylib
+*.d
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
