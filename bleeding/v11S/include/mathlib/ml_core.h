@@ -1,6 +1,5 @@
 #ifndef ML_CORE_H
 #define ML_CORE_H
-#include "ml_core.h"
 
 #include <stdint.h>
 #include <string.h>

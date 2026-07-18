@@ -14,6 +14,16 @@ ML_API ml_status_t ml_lu_decomp_v10(ml_tensor_view_t A, ml_tensor_view_t LU, int
         P[i] = i;
     }
 
+    /* Calculate infinity norm for relative singularity threshold */
+    double matrix_norm = 0.0;
+    for (int i = 0; i < n; i++) {
+        double row_sum = 0.0;
+        for (int j = 0; j < n; j++) row_sum += ml_fabs(ML_TENSOR_AT(A, i, j));
+        if (row_sum > matrix_norm) matrix_norm = row_sum;
+    }
+    double singularity_threshold = matrix_norm * 2.220446049250313e-16 * (double)n;
+    if (singularity_threshold == 0.0) singularity_threshold = 1e-15; // Fallback for exact zero matrix
+
     for (int i = 0; i < n; i++) {
         int max_row = i;
         double max_val = ML_TENSOR_AT(LU, i, i);
@@ -25,9 +35,8 @@ ML_API ml_status_t ml_lu_decomp_v10(ml_tensor_view_t A, ml_tensor_view_t LU, int
             if (val > max_val) { max_val = val; max_row = k; }
         }
 
-        /* FIX: Use relative machine tolerance instead of exact zero check
-         * to catch near-singular matrices that cause NaN cascades */
-        if (ML_UNLIKELY(max_val < 1e-15)) return ML_ERR_SINGULAR;
+        /* FIX: Relative machine tolerance prevents false singularities on scaled matrices */
+        if (ML_UNLIKELY(max_val < singularity_threshold)) return ML_ERR_SINGULAR;
 
         if (max_row != i) {
             for (int k = 0; k < n; k++) {

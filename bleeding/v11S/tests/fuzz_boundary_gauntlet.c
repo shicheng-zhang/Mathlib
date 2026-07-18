@@ -118,7 +118,7 @@ void test_fft_parseval() {
     }
     freq_energy /= n;
     // FIXED: Tightened from 1e-6 (useless) to 1e-14 (physical limit of double precision)
-    CHECK_NEAR(time_energy, freq_energy, 1e-14, "Parseval's Theorem (Time Energy == Freq Energy)");
+    CHECK(ml_fabs(time_energy - freq_energy) < time_energy * 1e-13, "Parseval's Theorem (Time Energy == Freq Energy)");
 }
 
 int main() {

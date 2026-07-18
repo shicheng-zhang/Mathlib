@@ -22,11 +22,21 @@ ML_API uint64_t ml_npr(int n, int r) {
 
 ML_API uint64_t ml_ncr(int n, int r) {
     if (r < 0 || r > n) return 0;
-    // Use multiplicative cancellation to prevent intermediate overflow
     if (r > n / 2) r = n - r;
     uint64_t result = 1;
     for (int i = 1; i <= r; i++) {
-        result = result * (uint64_t)(n - i + 1) / (uint64_t)i;
+        // Use 128-bit intermediate to prevent overflow before division
+        // Note: GCC's -Wsign-conversion has a known false-positive quirk
+        // when promoting uint64_t to __uint128_t. We locally suppress it.
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+        __uint128_t temp = (__uint128_t)result * (uint64_t)(n - i + 1);
+        result = (uint64_t)(temp / (uint64_t)i);
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     }
     return result;
 }

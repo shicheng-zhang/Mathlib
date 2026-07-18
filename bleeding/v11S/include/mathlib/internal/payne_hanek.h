@@ -46,10 +46,10 @@ static inline int ml_rem_pio2(double x, double *y) {
     long long n_ll = (long long)fn;
     int n = (int)(n_ll & 3);
 
-    // EXACT CODY-WAITE REDUCTION
-    // 1. Compute fn * PIO2_HI exactly as (p + p_err)
-    double p, p_err;
-    p = ml_two_product(fn, PIO2_HI, &p_err);
+    // EXACT CODY-WAITE REDUCTION via Hardware FMA
+    // Bypasses Dekker's 27-bit limitation by using infinite-precision intermediate FMA
+    double p = fn * PIO2_HI;
+    double p_err = ML_FMA(fn, PIO2_HI, -p);
 
     // 2. Compute x - p exactly as (r1 + r1_err)
     double r1, r1_err;

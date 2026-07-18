@@ -27,7 +27,9 @@ static void ml_matmul_scalar(const double* ML_RESTRICT A, const double* ML_RESTR
 ML_TARGET_AVX2
 static void ml_matmul_avx2(const double* ML_RESTRICT A, const double* ML_RESTRICT B, double* ML_RESTRICT C, int N) {
     for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j += 4) {
+        int j = 0;
+        /* Vectorized body for full 4-wide chunks */
+        for (; j <= N - 4; j += 4) {
             __m256d c_vec = _mm256_setzero_pd();
             for (int k = 0; k < N; k++) {
                 __m256d a_vec = _mm256_broadcast_sd(&A[i * N + k]);
@@ -35,6 +37,14 @@ static void ml_matmul_avx2(const double* ML_RESTRICT A, const double* ML_RESTRIC
                 c_vec = _mm256_fmadd_pd(a_vec, b_vec, c_vec);
             }
             _mm256_storeu_pd(&C[i * N + j], c_vec);
+        }
+        /* Scalar tail for remaining N % 4 elements (Prevents OOB write corruption) */
+        for (; j < N; j++) {
+            double sum = 0.0;
+            for (int k = 0; k < N; k++) {
+                sum += A[i * N + k] * B[k * N + j];
+            }
+            C[i * N + j] = sum;
         }
     }
 }

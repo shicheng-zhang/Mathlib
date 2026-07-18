@@ -4,8 +4,11 @@
 #include "ml_core.h"
 #include "internal/payne_hanek.h"
 
-// 19th-degree Minimax/Maclaurin polynomial for sin(x) on [-pi/4, pi/4]
-static const double minimax_sin_coeffs[] = {
+// 19th-degree Maclaurin (Taylor) polynomial for sin(x) on [-pi/4, pi/4]
+// Note: These are the exact Taylor series coefficients (1/k!). They achieve < 1 ULP
+// on this interval due to the high degree. A true Remez minimax polynomial would
+// have slightly different coefficients to minimize the maximum error uniformly.
+static const double maclaurin_sin_coeffs[] = {
     1.0,
     -0.16666666666666666,
     0.008333333333333333,
@@ -20,13 +23,13 @@ static const double minimax_sin_coeffs[] = {
 
 static inline double ml_minimax_sin_raw(double x) {
     double x2 = x * x;
-    double result = minimax_sin_coeffs[9];
-    for (int i = 8; i >= 0; i--) result = __builtin_fma(result, x2, minimax_sin_coeffs[i]);
+    double result = maclaurin_sin_coeffs[9];
+    for (int i = 8; i >= 0; i--) result = __builtin_fma(result, x2, maclaurin_sin_coeffs[i]);
     return x * result;
 }
 
-// 18th-degree Minimax/Maclaurin polynomial for cos(x) on [-pi/4, pi/4]
-static const double minimax_cos_coeffs[] = {
+// 18th-degree Maclaurin (Taylor) polynomial for cos(x) on [-pi/4, pi/4]
+static const double maclaurin_cos_coeffs[] = {
     1.0,
     -0.5,
     0.041666666666666664,
@@ -41,8 +44,8 @@ static const double minimax_cos_coeffs[] = {
 
 static inline double ml_minimax_cos_raw(double x) {
     double x2 = x * x;
-    double result = minimax_cos_coeffs[9];
-    for (int i = 8; i >= 0; i--) result = __builtin_fma(result, x2, minimax_cos_coeffs[i]);
+    double result = maclaurin_cos_coeffs[9];
+    for (int i = 8; i >= 0; i--) result = __builtin_fma(result, x2, maclaurin_cos_coeffs[i]);
     return result;
 }
 

@@ -47,8 +47,8 @@ ML_INLINE void *ml_workspace_alloc(ml_workspace_t *ws, size_t bytes) {
     /* SAFETY: Always validate canary to detect memory corruption */
     if (ML_UNLIKELY(ws->magic_canary != ML_WORKSPACE_CANARY)) return NULL;
 
-    /* Align to 16 bytes for SIMD compatibility */
-    size_t aligned = (bytes + 15) & ~(size_t)15;
+    /* Align to 32 bytes for AVX2 compatibility (Prevents General Protection Faults) */
+    size_t aligned = (bytes + 31) & ~(size_t)31;
 
     /* SAFETY: Always check for overflow and exhaustion */
     if (ML_UNLIKELY(aligned < bytes)) return NULL; /* Overflow */

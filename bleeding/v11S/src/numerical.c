@@ -38,7 +38,9 @@ ML_API double ml_second_derivative(ml_func_t f, double x, double h) {
 }
 
 ML_API double ml_integral_simpson(ml_func_t f, double a, double b, int n) {
-    if (n % 2 == 1) n++;
+    // Simpson's rule strictly requires an even number of subintervals (n >= 2).
+    // We reject odd n with NaN instead of silently altering the user's grid.
+    if (n % 2 == 1 || n < 2) return 0.0 / 0.0;
     double h = (b - a) / n;
     double result = f(a) + f(b);
     for (int i = 1; i < n; i++) {

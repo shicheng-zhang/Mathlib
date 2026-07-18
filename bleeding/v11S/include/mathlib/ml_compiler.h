@@ -86,4 +86,15 @@
 #  define ML_COMPILE_TIME_AVX2 0
 #endif
 
+
+/* 10. Hardware FMA (Fused Multiply-Add) Abstraction */
+#if defined(__GNUC__) || defined(__clang__)
+#  define ML_FMA(a, b, c) __builtin_fma((double)(a), (double)(b), (double)(c))
+#elif defined(_MSC_VER)
+#  include <math.h>
+#  define ML_FMA(a, b, c) fma((double)(a), (double)(b), (double)(c))
+#else
+#  define ML_FMA(a, b, c) (((double)(a) * (double)(b)) + (double)(c))
+#endif
+
 #endif /* MATHLIB_COMPILER_H */
