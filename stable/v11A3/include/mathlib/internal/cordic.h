@@ -1,6 +1,24 @@
-#include "cordic.h"
+#ifndef LIBMATHC_CORDIC_H
+#define LIBMATHC_CORDIC_H
+#include "ml_core.h"
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
-ML_API void ml_cordic_sincos(double theta, double *sin_out, double *cos_out) {
+static const double cordic_atan[] = {
+    0.7853981633974483, 0.4636476090008061, 0.24497866312686414,
+    0.12435499454676144, 0.06241880999595735, 0.031239833430268277,
+    0.01562372862047683, 0.00781234106010111, 0.003906230131966971,
+    0.001953122516478818, 0.000976562189559319, 0.000488281211194898,
+    0.000244140620149362, 0.000122070311893670, 0.000061035156174208,
+    0.000030517578115521, 0.000015258789061315, 0.000007629394531101,
+    0.000003814697265606, 0.000001907348632810, 0.000000953674316405,
+    0.000000476837158203, 0.000000238418579101, 0.000000119209289550
+};
+
+#define CORDIC_GAIN 0.607252935008881
+
+static inline void ml_cordic_sincos(double theta, double *sin_out, double *cos_out) {
     // 1. Range reduction to [-pi, pi]
     theta = ml_fmod(theta, 2.0 * M_PI);
     if (theta > M_PI) theta -= 2.0 * M_PI;
@@ -41,4 +59,4 @@ ML_API void ml_cordic_sincos(double theta, double *sin_out, double *cos_out) {
     *cos_out = x;
     *sin_out = y;
 }
-
+#endif

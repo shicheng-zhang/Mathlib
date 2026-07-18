@@ -1,4 +1,4 @@
-# MathLib Design Contract (v11A1)
+# MathLib Design Contract (v11S)
 
 This document defines the strict architectural and operational boundaries of MathLib.
 Any future contributions must adhere to these policies.

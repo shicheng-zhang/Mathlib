@@ -1,25 +1,20 @@
+#include "ml_compiler.h"
 #include "ml_linalg.h"
 
 ML_API ml_status_t ml_lu_decomp_v10(ml_tensor_view_t A, ml_tensor_view_t LU, int* P, ml_workspace_t* ws) {
-    (void)ws; // Suppress unused warning
+    (void)ws;
     int n = A.rows;
 
-// Safety: Always active (v11S)
-    // Sanitization Perimeter: Reject structurally mangled or malicious matrices
-    if (n <= 0 || A.data == NULL || LU.data == NULL || P == NULL) return ML_ERR_INVALID_ARG;
-    if (A.cols != n || LU.rows != n || LU.cols != n) return ML_ERR_INVALID_ARG; // Dimension mismatch
-// End safety checks
+    /* SAFETY BY DEFAULT: Unconditional NULL and dimension checks */
+    if (ML_UNLIKELY(n <= 0 || A.data == NULL || LU.data == NULL || P == NULL)) return ML_ERR_INVALID_ARG;
+    if (ML_UNLIKELY(A.cols != n || LU.rows != n || LU.cols != n)) return ML_ERR_INVALID_ARG;
 
-    // Copy A into LU
-    for(int i=0; i<n; i++) {
-        for(int j=0; j<n; j++) {
-            ML_TENSOR_AT(LU, i, j) = ML_TENSOR_AT(A, i, j);
-        }
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < n; j++) ML_TENSOR_AT(LU, i, j) = ML_TENSOR_AT(A, i, j);
         P[i] = i;
     }
 
     for (int i = 0; i < n; i++) {
-        // Partial Pivoting
         int max_row = i;
         double max_val = ML_TENSOR_AT(LU, i, i);
         if (max_val < 0) max_val = -max_val;
@@ -27,14 +22,13 @@ ML_API ml_status_t ml_lu_decomp_v10(ml_tensor_view_t A, ml_tensor_view_t LU, int
         for (int k = i + 1; k < n; k++) {
             double val = ML_TENSOR_AT(LU, k, i);
             if (val < 0) val = -val;
-            if (val > max_val) {
-                max_val = val;
-                max_row = k;
-            }
+            if (val > max_val) { max_val = val; max_row = k; }
         }
-        if (max_val == 0.0) return ML_ERR_SINGULAR;
 
-        // Swap rows in LU and P
+        /* FIX: Use relative machine tolerance instead of exact zero check
+         * to catch near-singular matrices that cause NaN cascades */
+        if (ML_UNLIKELY(max_val < 1e-15)) return ML_ERR_SINGULAR;
+
         if (max_row != i) {
             for (int k = 0; k < n; k++) {
                 double tmp = ML_TENSOR_AT(LU, i, k);
@@ -44,47 +38,62 @@ ML_API ml_status_t ml_lu_decomp_v10(ml_tensor_view_t A, ml_tensor_view_t LU, int
             int tmp = P[i]; P[i] = P[max_row]; P[max_row] = tmp;
         }
 
-        // Elimination (Store multipliers in the lower triangle of LU)
         double pivot = ML_TENSOR_AT(LU, i, i);
         for (int k = i + 1; k < n; k++) {
             double mult = ML_TENSOR_AT(LU, k, i) / pivot;
-            ML_TENSOR_AT(LU, k, i) = mult; // Store L
+            ML_TENSOR_AT(LU, k, i) = mult;
             for (int j = i + 1; j < n; j++) {
                 ML_TENSOR_AT(LU, k, j) -= mult * ML_TENSOR_AT(LU, i, j);
             }
         }
     }
-    return 0;
+    return ML_SUCCESS;
 }
 
 ML_API ml_status_t ml_solve_v10(ml_tensor_view_t A, double* b, double* x, ml_workspace_t* ws) {
     int n = A.rows;
 
-    // Allocate scratchpad from workspace (NO MALLOC)
-    double* lu_data = (double*)ml_workspace_alloc(ws, n * n * sizeof(double));
-    int* P = (int*)ml_workspace_alloc(ws, n * sizeof(int));
-    double* y = (double*)ml_workspace_alloc(ws, n * sizeof(double));
+    /* SAFETY BY DEFAULT: Unconditional NULL checks */
+    if (ML_UNLIKELY(!A.data || !b || !x || !ws)) return ML_ERR_INVALID_ARG;
+    if (ML_UNLIKELY(n <= 0 || A.cols != n)) return ML_ERR_INVALID_ARG;
 
-    if (!lu_data || !P || !y) return ML_ERR_WORKSPACE;
+    size_t sn = (size_t)n;
+    double* lu_data = (double*)ml_workspace_alloc(ws, sn * sn * sizeof(double));
+    int* P = (int*)ml_workspace_alloc(ws, sn * sizeof(int));
+    double* y = (double*)ml_workspace_alloc(ws, sn * sizeof(double));
+
+    if (ML_UNLIKELY(!lu_data || !P || !y)) return ML_ERR_WORKSPACE;
 
     ml_tensor_view_t LU = ml_tensor_view(lu_data, n, n);
+    ml_status_t status = ml_lu_decomp_v10(A, LU, P, ws);
+    if (status != ML_SUCCESS) return status;
 
-    if (ml_lu_decomp_v10(A, LU, P, ws) != ML_SUCCESS) return ML_ERR_SINGULAR;
-
-    // Forward substitution (Ly = Pb)
     for (int i = 0; i < n; i++) {
         double sum = 0;
         for (int j = 0; j < i; j++) sum += ML_TENSOR_AT(LU, i, j) * y[j];
         y[i] = b[P[i]] - sum;
     }
 
-    // Backward substitution (Ux = y)
     for (int i = n - 1; i >= 0; i--) {
         double sum = 0;
         for (int j = i + 1; j < n; j++) sum += ML_TENSOR_AT(LU, i, j) * x[j];
-        x[i] = (y[i] - sum) / ML_TENSOR_AT(LU, i, i);
+        double pivot = ML_TENSOR_AT(LU, i, i);
+        if (ML_UNLIKELY(pivot == 0.0)) return ML_ERR_SINGULAR;
+        x[i] = (y[i] - sum) / pivot;
     }
-
-    return 0;
+    return ML_SUCCESS;
 }
 
+/* Matrix-Vector Multiplication (y = Ax) */
+ML_API void ml_matvec(ml_tensor_view_t A, const double* x, double* out) {
+    int n = A.rows;
+    int m = A.cols;
+    if (ML_UNLIKELY(!A.data || !x || !out)) return;
+    for (int i = 0; i < n; i++) {
+        double sum = 0.0;
+        for (int j = 0; j < m; j++) {
+            sum += ML_TENSOR_AT(A, i, j) * x[j];
+        }
+        out[i] = sum;
+    }
+}

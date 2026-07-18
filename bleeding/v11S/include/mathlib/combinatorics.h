@@ -7,7 +7,7 @@ static inline uint64_t factorial(int x) {
     if (x == 0) return 1;
     uint64_t result = (uint64_t)x;
     while ((x - 1) > 0) {
-        result *= (x - 1);
+        result *= (uint64_t)(x - 1);
         x -= 1;
     }
     return result;

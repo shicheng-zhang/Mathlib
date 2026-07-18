@@ -1,6 +1,0 @@
-bleeding: v11A2 (V1.1 Alpha RC2)
-stable: v10 (V1.0)
-legacy: v1 - v9 (V0.1 - V0.9)
-
-Naming Scheme: vx = V(x / 10)
-Example: v15 = V1.5

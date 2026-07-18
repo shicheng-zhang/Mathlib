@@ -1,4 +1,4 @@
-# MathLib v11A2 API Status (Freeze)
+# MathLib v11S API Status (Freeze)
 
 This document defines the permanent public interface for MathLib v1.1.
 **No new features or signature changes are permitted beyond this point.**
@@ -12,7 +12,7 @@ This document defines the permanent public interface for MathLib v1.1.
 | `ml_tensor.h` | **EXPERIMENTAL** | Workspace bump allocator. API may shift in v1.2. |
 | `fft.h` | **STABLE** | Cooley-Tukey iterative, O(N) twiddle refresh. |
 | `ml_complex.h` | **STABLE** | Pure C99 complex arithmetic. |
-| `compat.h` | **LEGACY** | V1.0 shims. Throws `#warning`. Will be removed in v2.0. |
+| `compat.h` | **LEGACY** | v11S shims. Throws `#warning`. Will be removed in v2.0. |
 | `legacy/` | **REMOVED** | Quarantined malloc-heavy modules. Not built by default. |
 
 ## Error Handling Contract

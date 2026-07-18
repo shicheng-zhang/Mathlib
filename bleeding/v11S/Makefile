@@ -1,40 +1,63 @@
 CC = gcc
-CFLAGS = -std=c99 -O3 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wfloat-equal -fno-fast-math -ffp-contract=off -Iinclude/mathlib -MMD -MP
+# Strict C99 warnings, dependency tracking, and IEEE-754 determinism
+# NOTE: -Wfloat-equal is intentionally omitted (The Float-Equal Paradox).
+CFLAGS = -std=c99 -O3 -Wall -Wextra -Wconversion -Wshadow -Wpedantic -Werror -fno-fast-math -ffp-contract=off -Iinclude/mathlib -MMD -MP
 LDLIBS = -lm
-SRC = src/minimax.c src/exp_log.c src/linalg.c src/core.c src/cordic.c src/trig.c src/fft.c src/payne_hanek.c src/tensor.c src/complex.c src/cpu_dispatch.c
 
-DEPS = $(SRC:.c=.d) tests/*.d
+SRC = src/core.c src/trig.c src/exp_log.c src/complex.c src/linalg.c src/fft.c src/cpu_dispatch.c src/combinatorics.c src/quadratics.c src/polynomial.c src/numerical.c src/statistics.c src/integral.c src/ode.c src/optimization.c src/quaternion.c src/fixed_point.c
+DEPS = $(SRC:.c=.d)
 
-.PHONY: all clean test
+TEST_SRC = tests/test.c
+BENCH_SRC = benchmarks/bench.c
+FUZZ_GOD_SRC = tests/fuzz_god_mode.c
+FUZZ_BOUND_SRC = tests/fuzz_boundary_gauntlet.c
 
-all: test_main test_core test_trig test_linalg test_dsp fuzz_god_mode fuzz_boundary
+# Align output paths with CMake and soak_test.sh
+OUT_DIR = build
 
-test_main: tests/test.c $(SRC)
-	$(CC) $(CFLAGS) -o test_main tests/test.c $(SRC) $(LDLIBS)
+all: $(OUT_DIR)/test $(OUT_DIR)/bench $(OUT_DIR)/fuzz_god_mode $(OUT_DIR)/fuzz_boundary
 
-test_core: tests/test_core.c $(SRC)
-	$(CC) $(CFLAGS) -o test_core tests/test_core.c $(SRC) $(LDLIBS)
+$(OUT_DIR):
+	mkdir -p $(OUT_DIR)
 
-test_trig: tests/test_trig.c $(SRC)
-	$(CC) $(CFLAGS) -o test_trig tests/test_trig.c $(SRC) $(LDLIBS)
+$(OUT_DIR)/test: $(TEST_SRC) $(SRC) | $(OUT_DIR)
+	$(CC) $(CFLAGS) -o $@ $(TEST_SRC) $(SRC) $(LDLIBS)
 
-test_linalg: tests/test_linalg.c $(SRC)
-	$(CC) $(CFLAGS) -o test_linalg tests/test_linalg.c $(SRC) $(LDLIBS)
+$(OUT_DIR)/bench: $(BENCH_SRC) $(SRC) | $(OUT_DIR)
+	$(CC) $(CFLAGS) -o $@ $(BENCH_SRC) $(SRC) $(LDLIBS)
 
-test_dsp: tests/test_dsp.c $(SRC)
-	$(CC) $(CFLAGS) -o test_dsp tests/test_dsp.c $(SRC) $(LDLIBS)
+$(OUT_DIR)/fuzz_god_mode: $(FUZZ_GOD_SRC) $(SRC) | $(OUT_DIR)
+	$(CC) $(CFLAGS) -o $@ $(FUZZ_GOD_SRC) $(SRC) $(LDLIBS)
 
-fuzz_god_mode: tests/fuzz_god_mode.c $(SRC)
-	$(CC) $(CFLAGS) -o fuzz_god_mode tests/fuzz_god_mode.c $(SRC) $(LDLIBS)
-
-fuzz_boundary: tests/fuzz_boundary_gauntlet.c $(SRC)
-	$(CC) $(CFLAGS) -o fuzz_boundary tests/fuzz_boundary_gauntlet.c $(SRC) $(LDLIBS)
-
-test: all
-	@echo "Running all tests..."
-	@for t in test_main test_core test_trig test_linalg test_dsp fuzz_god_mode fuzz_boundary; do ./$$t || exit 1; done
+$(OUT_DIR)/fuzz_boundary: $(FUZZ_BOUND_SRC) $(SRC) | $(OUT_DIR)
+	$(CC) $(CFLAGS) -o $@ $(FUZZ_BOUND_SRC) $(SRC) $(LDLIBS)
 
 clean:
-	rm -f test_main test_core test_trig test_linalg test_dsp fuzz_god_mode fuzz_boundary $(DEPS) src/*.o
+	rm -f $(OUT_DIR)/test $(OUT_DIR)/bench $(OUT_DIR)/fuzz_god_mode $(OUT_DIR)/fuzz_boundary
+	rm -f $(DEPS)
 
+.PHONY: all clean
+
+# Modular CI/CD Tests
+TESTS = $(OUT_DIR)/test_core $(OUT_DIR)/test_trig $(OUT_DIR)/test_linalg $(OUT_DIR)/test_dsp
+
+$(OUT_DIR)/test_core: tests/test_core.c $(SRC) | $(OUT_DIR)
+	$(CC) $(CFLAGS) -o $@ $< $(SRC) $(LDLIBS)
+
+$(OUT_DIR)/test_trig: tests/test_trig.c $(SRC) | $(OUT_DIR)
+	$(CC) $(CFLAGS) -o $@ $< $(SRC) $(LDLIBS)
+
+$(OUT_DIR)/test_linalg: tests/test_linalg.c $(SRC) | $(OUT_DIR)
+	$(CC) $(CFLAGS) -o $@ $< $(SRC) $(LDLIBS)
+
+$(OUT_DIR)/test_dsp: tests/test_dsp.c $(SRC) | $(OUT_DIR)
+	$(CC) $(CFLAGS) -o $@ $< $(SRC) $(LDLIBS)
+
+test_modular: $(TESTS)
+	@cd $(OUT_DIR) && python3 ../tests/run_tests.py
+
+clean_modular:
+	rm -f $(TESTS)
+
+# Include auto-generated dependency files
 -include $(DEPS)

@@ -1,72 +1,126 @@
 cmake_minimum_required(VERSION 3.10)
-project(mathlib VERSION 11.0.0 LANGUAGES C)
+project(mathlib_v11S VERSION 11.0.0 LANGUAGES C)
 
+# Strict C99 enforcement (No GNU extensions like typeof or statement expressions)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF) # Strict C99. No GNU extensions (typeof, etc.)
+set(CMAKE_C_EXTENSIONS OFF)
 
-# Profile Validation
+# Profile Validation & Definition
 set(MATHLIB_PROFILE "SCIENTIFIC" CACHE STRING "Mathlib Execution Profile")
 if(NOT MATHLIB_PROFILE MATCHES "^(SCIENTIFIC|GRAPHICS|EMBEDDED)$")
     message(FATAL_ERROR "MATHLIB_PROFILE must be SCIENTIFIC, GRAPHICS, or EMBEDDED. Got: ${MATHLIB_PROFILE}")
 endif()
-add_compile_definitions(MATHLIB_PROFILE_${MATHLIB_PROFILE})
 
-# Strict Warning Flags
-add_compile_options(
-    -O3 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wfloat-equal
-    -fno-fast-math -ffp-contract=off
-)
+if(MATHLIB_PROFILE STREQUAL "GRAPHICS")
+    add_compile_definitions(MATHLIB_PROFILE_GRAPHICS)
+elseif(MATHLIB_PROFILE STREQUAL "EMBEDDED")
+    add_compile_definitions(MATHLIB_PROFILE_EMBEDDED)
+else()
+    add_compile_definitions(MATHLIB_PROFILE_SCIENTIFIC)
+endif()
 
-option(MATHLIB_NATIVE "Enable -march=native (Breaks binary portability)" OFF)
+# Strict Compiler Flags (Matching the hardened Makefile)
+# NOTE: -Wfloat-equal is intentionally omitted (The Float-Equal Paradox).
+# In numerical computing (libm), exact comparisons to 0.0, 1.0,
+# and NaN checks (x != x) are mathematically intentional and required.
+add_compile_options(-O3 -Wall -Wextra -Wconversion -Wshadow -Wpedantic -Werror -fno-fast-math -ffp-contract=off)
+
+option(MATHLIB_NATIVE "Enable -march=native (Warning: Breaks binary portability)" OFF)
 if(MATHLIB_NATIVE)
     add_compile_options(-march=native)
 endif()
 
-option(MATHLIB_HARDENED "Enable memory canaries and strict sanitization" OFF)
-if(MATHLIB_HARDENED)
-    add_compile_definitions(MATHLIB_HARDENED)
+# Sanitizers (Fixed: Added to link options as well)
+option(MATHLIB_SANITIZERS "Enable Address and Undefined Behavior Sanitizers" OFF)
+if(MATHLIB_SANITIZERS)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    message(STATUS "Sanitizers enabled")
 endif()
 
-# Core Library (INTERFACE for now; will become STATIC when .c files are extracted)
-add_library(mathc INTERFACE)
-target_include_directories(mathc INTERFACE
+# The Real v11S Translation Units
+set(MATHLIB_SOURCES
+    src/core.c
+    src/trig.c
+    src/exp_log.c
+    src/complex.c
+    src/linalg.c
+    src/fft.c
+    src/cpu_dispatch.c
+    src/combinatorics.c
+    src/quadratics.c
+    src/polynomial.c
+    src/numerical.c
+    src/statistics.c
+    src/integral.c
+    src/ode.c
+    src/optimization.c
+    src/quaternion.c
+    src/fixed_point.c
+)
+
+add_library(mathc STATIC ${MATHLIB_SOURCES})
+target_include_directories(mathc PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/mathlib>
     $<INSTALL_INTERFACE:include/mathlib>
 )
 
-# Sanitizers (Fixed: added to link options)
-option(MATHLIB_SANITIZERS "Enable Address and Undefined Behavior Sanitizers" OFF)
-if(MATHLIB_SANITIZERS)
-    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
-    add_link_options(-fsanitize=address,undefined)
+# Core Test Executables
+add_executable(test tests/test.c)
+target_link_libraries(test mathc m)
+
+add_executable(bench benchmarks/bench.c)
+target_link_libraries(bench mathc m)
+
+add_executable(fuzz_god_mode tests/fuzz_god_mode.c)
+target_link_libraries(fuzz_god_mode mathc m)
+
+add_executable(fuzz_boundary tests/fuzz_boundary_gauntlet.c)
+target_link_libraries(fuzz_boundary mathc m)
+
+# Modular CI/CD Tests
+add_executable(test_core tests/test_core.c)
+target_link_libraries(test_core mathc m)
+
+add_executable(test_trig tests/test_trig.c)
+target_link_libraries(test_trig mathc m)
+
+add_executable(test_linalg tests/test_linalg.c)
+target_link_libraries(test_linalg mathc m)
+
+add_executable(test_dsp tests/test_dsp.c)
+target_link_libraries(test_dsp mathc m)
+
+# Examples & Validation (Hidden behind options to prevent CI bloat)
+option(MATHLIB_BUILD_EXAMPLES "Build example programs" OFF)
+if(MATHLIB_BUILD_EXAMPLES)
+    add_executable(hello_tensor examples/hello_tensor.c)
+    target_link_libraries(hello_tensor mathc m)
 endif()
 
-# Helper function for tests
-function(add_mathlib_test name source)
-    add_executable(${name} ${source})
-    target_link_libraries(${name} PRIVATE mathc m)
-    add_test(NAME ${name} COMMAND ${name})
-endfunction()
-
-enable_testing()
-
-# Main Tests
-add_mathlib_test(test_main tests/test.c)
-add_mathlib_test(test_core tests/test_core.c)
-add_mathlib_test(test_trig tests/test_trig.c)
-add_mathlib_test(test_linalg tests/test_linalg.c)
-add_mathlib_test(test_dsp tests/test_dsp.c)
-add_mathlib_test(fuzz_god_mode tests/fuzz_god_mode.c)
-add_mathlib_test(fuzz_boundary tests/fuzz_boundary_gauntlet.c)
-
-# Validation & Examples (Opt-in to keep default build clean)
-option(MATHLIB_BUILD_EXTRAS "Build validation tools and examples" OFF)
-if(MATHLIB_BUILD_EXTRAS)
-    add_mathlib_test(ulp_validation validation/ulp_error.c)
-    add_mathlib_test(hello_tensor examples/hello_tensor.c)
+option(MATHLIB_BUILD_VALIDATION "Build validation tools" OFF)
+if(MATHLIB_BUILD_VALIDATION)
+    add_executable(ulp_validation validation/ulp_error.c)
+    target_link_libraries(ulp_validation mathc m)
 endif()
 
-# Installation
+# Installation and Export (Enables find_package(mathlib) for downstream consumers)
 include(GNUInstallDirs)
+install(TARGETS mathc EXPORT mathlibTargets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY include/mathlib DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(EXPORT mathlibTargets
+    FILE mathlibTargets.cmake
+    NAMESPACE mathlib::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/mathlib
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mathlibConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/mathlibConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/mathlib
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/mathlibConfig.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/mathlib
+)

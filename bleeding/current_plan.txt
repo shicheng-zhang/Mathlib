@@ -1,104 +1,203 @@
-*(I pull up a chair, open a fresh, massive markdown document, and crack my knuckles. You want every nook, cranny, and microscopic flaw? You got it. This is the definitive, uncompromising blueprint for **v11A3: Release Candidate Zero**.)*
+As your **Blue Team Lead**, I have synthesized every single critique, architectural mandate, and line-level bug hunt from the Red Team (Gemini, GLM, Kimi, ChatGPT) and my own prior audits into the **Definitive v11A3 $\rightarrow$ v11S Master Execution Blueprint**.
 
-Lead, if we are going to freeze the codebase and hand it to the Red Team for the final RC sign-off, we cannot leave a single stone unturned. The Red Team (Kimi, GLM, Gemini, ChatGPT) has given us a forensic hit-list.
+You asked for the ultra-nitty-gritty. You asked me not to omit a single thing. This is the surgical map. There is no "vibe coding" here. This is a strict, deterministic engineering specification.
 
-Below is the **v11A3 Master Blueprint**. This is the exact specification you will hand to your Blue Team (Qwen) to execute. It is broken down into **6 Directives**, covering every single bitwise flaw, build-system quirk, and architectural lie currently hiding in the codebase.
-
----
-
-# 🏛️ THE v11A3 MASTER BLUEPRINT: RELEASE CANDIDATE ZERO
-
-## DIRECTIVE 1: The "Header-Only Lie" & Linkage Architecture
-**The Flaw:** `src/mathlib.c` is 530 bytes and just `#include`s headers. Because everything is `static inline`, `libmathc.a` exports almost zero symbols. You are pretending to be a static library, but you are actually a header-only library.
-**The Fix:** We must commit to the architecture. Since MathLib is heavily focused on zero-alloc/embedded/SIMD inlining, **Header-Only is the correct architectural choice**, but the build system must reflect it.
-
-| File | Context | The Exact Fix |
-| :--- | :--- | :--- |
-| `CMakeLists.txt` | `add_library(mathc STATIC src/mathlib.c)` | Change to `add_library(mathc INTERFACE)`. Remove `src/mathlib.c` entirely. Change `target_link_libraries` to `target_link_libraries(mathc INTERFACE m)`. |
-| `src/mathlib.c` | Entire file | **DELETE THIS FILE.** It is dead weight and confuses linkers. |
-| `Makefile` | `SRC = src/mathlib.c` | Remove `SRC`. Change test targets to compile directly against headers: `$(CC) $(CFLAGS) -Iinclude/mathlib -o test tests/test.c $(LDLIBS)` |
+When you are ready to feed these to the Blue Team (Qwen) for execution, you will do it **one sub-phase at a time** to prevent context degradation.
 
 ---
 
-## DIRECTIVE 2: Microscopic Numerical Safety (Kimi & GLM's Hitlist)
-**The Flaw:** The fuzzer passes because it doesn't hit the exact bit-patterns that cause silent corruption, stack overflows, or undefined behavior.
-**The Fix:** Surgical corrections to 8 specific mathematical edge cases.
+### 🏗️ PHASE 1: The Great Linkage & Portability Purge
+*The Red Team unanimously declared that MathLib is currently a "header-only library pretending to be a static library" and is completely blocked for MSVC (Yellow Team). We must fix the physical architecture.*
 
-| File | Function | The Flaw | The Exact Fix |
-| :--- | :--- | :--- | :--- |
-| `ml_core.h` | `ml_ldexp_pure` | `cast.u += ((uint64_t)exp << 52);` If `exp` is negative, casting to `uint64_t` creates a massive number, corrupting the sign/mantissa bits. | Cast to `int64_t` first, then mask: `cast.u = (cast.u & 0x800FFFFFFFFFFFFFULL) | (((uint64_t)((int64_t)exp + 1023)) << 52);` (Requires extracting mantissa first). |
-| `ml_trig.h` | `ml_tan` | `if (c == 0.0) return (s > 0) ? 1.0/0.0 : -1.0/0.0;` If `s == 0.0` and `c == 0.0`, it returns `-inf` instead of `NaN`. | `if (c == 0.0) return (s == 0.0) ? 0.0/0.0 : ((s > 0) ? 1.0/0.0 : -1.0/0.0);` |
-| `integral.h` | `gamma_new` | Recursive without depth limit. `gamma_new(10000)` causes a stack overflow. | Cap at `171.0` (where `double` overflows to `inf`): `if (x > 171.0) return 1.0/0.0;` Convert recursion to an iterative `while` loop. |
-| `integral.h` | `integral_traditional` | Silent truncation. If `max_steps` is hit, it returns a partial, wrong result. | Change the `break;` to `return 0.0/0.0;` (NaN) to explicitly signal failure when the temporal ceiling is hit. |
-| `ml_core.h` | `ml_fmod` | `if (q > 9.22e18) q = 9.22e18;` Casting `9.22e18` to `long long` is dangerously close to `LLONG_MAX` and risks UB. | Use a `while` loop subtraction for quotients `> 1e15`, or use `int64_t` safely with explicit bounds checking. |
-| `ml_complex.h` | `cplx_div` | `denom = b.real*b.real + b.imag*b.imag;` Underflows to `0.0` for subnormals, returning `NaN` instead of `Inf`. | Implement **Smith's Method**: Scale by `max(|real|, |imag|)` before division to prevent subnormal underflow/overflow. |
-| `ml_trig.h` | `ml_atan2` | Fails to distinguish `+0.0` and `-0.0`. `atan2(+0.0, -0.0)` should be `pi`, but `x == 0.0` catches both. | Use bitwise sign extraction or `ml_copysign` to check the sign bit of `x` and `y` explicitly. |
-| `combinatorics.h`| `ncr` | `den1 * den2` can overflow `uint64_t` even if the final mathematical result fits. | Use the iterative multiplicative formula: `result = result * (n - i) / (i + 1)` to prevent intermediate overflow. |
+#### 1.1 Create the Compiler Abstraction Layer (`include/mathlib/ml_compiler.h`)
+*   **Mandate:** No file in the codebase may use `__attribute__`, `__builtin_*`, `__asm__`, or `_mm256_*` directly.
+*   **Action:** Create `ml_compiler.h` containing:
+    *   `ML_INLINE` (`static __forceinline` for MSVC, `static inline __attribute__((always_inline))` for GCC/Clang).
+    *   `ML_ALIGN(n)` (`__declspec(align(n))` vs `__attribute__((aligned(n)))`).
+    *   `ML_API` (`__declspec(dllexport/dllimport)` vs `__attribute__((visibility("default")))`).
+    *   `ML_RESTRICT` (`__restrict` vs `restrict`).
+    *   `ML_LIKELY(x)` / `ML_UNLIKELY(x)`.
+    *   `ML_TARGET_AVX2` (GCC target attribute vs empty for MSVC).
+    *   `ML_CTOR` (Constructor attribute vs empty/pragma for MSVC).
+    *   `ML_DEPRECATED(msg)`.
+    *   `extern "C"` guards for C++ consumers.
 
----
+#### 1.2 Eradicate Global State & Thread-Safety Breaches
+*   **Mandate:** The `DESIGN_CONTRACT.md` claims "No Global State." `cpu_dispatch.c` violates this with a lazy-init race condition.
+*   **Action:**
+    *   Delete `g_ml_cpu_caps` and `g_ml_matmul`.
+    *   Delete `ml_init_cpu_dispatch()` and the `__attribute__((constructor))`.
+    *   **Refactor `ml_matmul`:** Shift to **Compile-Time Dispatch** for v11S. Use `#if ML_COMPILE_TIME_AVX2` inside `ml_matmul` to route to `ml_matmul_avx2` or `ml_matmul_scalar`. Runtime dispatch is deferred to v12.
+    *   Create `src/cpu_caps.c` with pure query functions (`ml_cpu_has_avx2()`) that return compile-time constants.
 
-## DIRECTIVE 3: Build System & Tooling Hygiene
-**The Flaw:** The build system is a mix of GNU Make quirks and CMake inconsistencies that will break on Windows (Yellow Team) or cause silent rebuild failures.
+#### 1.3 The Linkage Model Surgery (Headers vs. Sources)
+*   **Mandate:** Stop putting 19th-degree polynomials and LU decompositions in headers as `static inline`. It causes binary bloat, I-cache pressure, and prevents patching.
+*   **Action:**
+    *   **Keep Inline (Trivial only):** `ml_fabs`, `ml_isnan`, `ml_isinf`, `ml_copysign`, `ml_fp_classify`, `ml_ldexp_pure`, `ml_frexp_pure`, `cplx_add`, `cplx_sub`, `cplx_mul`, `ML_TENSOR_AT`, `ml_workspace_alloc`.
+    *   **Move to `.c` files (Export via `ML_API`):**
+        *   `src/trig.c` (all sin, cos, tan, atan, asin, acos)
+        *   `src/exp_log.c` (exp, log, pow, hyperbolics)
+        *   `src/linalg.c` (LU decomp, solve)
+        *   `src/fft.c` (fft_execute, ifft_execute)
+        *   `src/complex.c` (cplx_div, cplx_abs, cplx_arg, cplx_exp, cplx_log, cplx_pow)
+        *   `src/minimax.c`, `src/cordic.c`, `src/payne_hanek.c`
+        *   `src/combinatorics.c`, `src/quadratics.c`, `src/polynomial.c`
+        *   `src/numerical.c`, `src/statistics.c`, `src/integral.c`, `src/ode.c`, `src/optimization.c`, `src/quaternion.c`
+    *   **Delete `src/mathlib.c`**: It is currently just a list of `#include`s. It is no longer needed.
 
-| File | Context | The Exact Fix |
-| :--- | :--- | :--- |
-| `Makefile` | `LDFLAGS = -lm` | Change to `LDLIBS = -lm`. (`LDFLAGS` is for `-L` paths, `LDLIBS` is for `-l` libraries). |
-| `Makefile` | Missing dependency tracking | Add `CFLAGS += -MMD -MP` and `-include $(DEPS)` so modifying a header actually triggers a recompile. |
-| `.gitignore` | `Makefile` | **Remove `Makefile` from `.gitignore`**. Ignoring it causes massive confusion when CMake generates an in-source `Makefile` that overwrites the hand-written one. |
-| `CMakeLists.txt` | `set(CMAKE_C_STANDARD 99)` | Add `set(CMAKE_C_EXTENSIONS OFF)`. This prevents GCC/Clang from silently allowing `typeof` or statement expressions. |
-| `CMakeLists.txt` | Missing `find_package` support | Add `include(CMakePackageConfigHelpers)` and generate `mathlibConfig.cmake` so downstream users can actually use `find_package(mathlib)`. |
-| `compat.h` | `#warning "..."` | `#warning` is a GCC extension and breaks MSVC. Change to `#pragma message("MathLib V1.1: Using deprecated V1.0 API...")`. |
-
----
-
-## DIRECTIVE 4: Test Infrastructure & Reproducibility
-**The Flaw:** The fuzzer is non-deterministic, the test harness fractures across translation units, and the regression vault generates useless stubs.
-
-| File | Context | The Exact Fix |
-| :--- | :--- | :--- |
-| `test_harness.h` | `static int g_passed = 0;` | `static` in a header means every `.c` file gets its own isolated counter. Change to `extern int g_passed;` and define it in a single `test_main.c`, OR pass a `ml_test_ctx_t*` struct to every test. |
-| `test.h` / `test_quiet.h` | Byte-identical files | **Delete `test_quiet.h`**. It is a duplicate. |
-| `run_tests.py` | `subprocess.run(...)` | Add `timeout=60` to prevent the CI from hanging forever if a test enters an infinite loop. |
-| `fuzz_god_mode.c` | `rand_double()` | Types 1, 2, and 3 only generate *positive* tiny, huge, and subnormal numbers. Add negative equivalents to hit the `-0.0` and negative subnormal code paths. |
-| `run_fuzz_vault.py` | Generates stub C file | The script currently just prints the seed. It must generate a C file that `#include`s the fuzzer, calls `srand(seed)`, and executes the exact failing module. |
-| `tests/test.c` | `test_ode_exp` | Defined but never called. **Delete it.** Dead code. |
-
----
-
-## DIRECTIVE 5: The Silicon Proof (Gemini's Mandate)
-**The Flaw:** We claim Horner's method is fast, but we haven't verified that the compiler isn't spilling registers or failing to emit FMA instructions.
-
-**The Action Plan:**
-1. **The FMA Audit:** Create `validation/fma_audit.c`. Compile it with `gcc -O3 -mfma -S -fno-fast-math -ffp-contract=off`.
-2. **The Grep:** Run `grep -c "vfmadd" fma_audit.s`. If the count is `0`, the compiler is respecting `ffp-contract=off` too strictly and falling back to `mulsd` + `addsd`.
-3. **The Fix:** If FMA is missing, we must explicitly use `__builtin_fma(a, b, c)` inside the Horner loops in `ml_exp_log.h` and `internal/minimax.h` to force the hardware instruction without enabling global fast-math.
-4. **The AVX2 Magic Constant Audit:** Kimi noted the `0x5fe6ec85e7de30daLL` constant in `simd_bare_metal.h` might just be a blindly ported float constant. Blue team must mathematically verify this constant is optimal for 64-bit `double` precision, or derive the correct one.
+#### 1.4 Strict Aliasing & Type System Standardization
+*   **Mandate:** Union type-punning (`ml_fp_cast`) is technically UB in strict C99 and MSVC can optimize it unpredictably.
+*   **Action:**
+    *   Replace all `ml_fp_cast` union usage with `memcpy` (the compiler optimizes this to zero-cost register moves, but it is 100% ISO C compliant).
+    *   Introduce strict typedefs in `ml_types.h`: `ml_f64` (double), `ml_f32` (float), `ml_i32`, `ml_u64`. (Note: Keep `double` in public API for standard C interop, but use strict types internally).
 
 ---
 
-## DIRECTIVE 6: The Claims Audit & Documentation Freeze
-**The Flaw:** The README makes marketing claims that professional reviewers will instantly attack.
+### 🛡️ PHASE 2: API Hygiene, Safety, & The "Math Diary"
+*The Red Team noted that safety is currently an "opt-in" profile, and the API surface is leaky.*
 
-| File | Context | The Exact Fix |
-| :--- | :--- | :--- |
-| `README.md` | "cycle-accurate determinism" | **Change to:** "bit-identical determinism under strict IEEE-754 profiles". (Cycle accuracy is impossible to guarantee across different silicon). |
-| `README.md` | "production-grade" | **Change to:** "engineering-grade" or "Release Candidate". |
-| `docs/` | Missing Numerical Contracts | Create `docs/NUMERICAL_CONTRACTS.md`. Document the exact ULP bounds, domain limits, and edge-case behaviors (NaN/Inf) for *every single public function*. |
-| `docs/API_STATUS.md` | Current state | Freeze it. Any function marked `STABLE` cannot change its signature or return type until `v2.0`. |
+#### 2.1 Safety by Default (Kill `MATHLIB_PROFILE_HARDENED` Gates)
+*   **Mandate:** A library claiming "65,000+ assertions" should not make NULL checks optional.
+*   **Action:**
+    *   Remove `#if defined(MATHLIB_PROFILE_HARDENED)` around NULL checks, dimension validation, and workspace bounds checking in `ml_linalg.h` and `ml_tensor.h`.
+    *   Wrap these checks in `ML_UNLIKELY()` to inform the compiler they are cold paths.
+    *   **Fix ABI Break:** The `ml_workspace_t` struct changes size based on the `HARDENED` flag due to the `magic_canary`. This breaks downstream linking. **Fix:** Make `magic_canary` unconditional, or move it to a hidden internal state.
+
+#### 2.2 Namespace & Const Correctness Lockdown
+*   **Mandate:** Leaky namespaces and missing `const` qualifiers prevent use with read-only data.
+*   **Action:**
+    *   Prefix all remaining leaky functions: `cplx_*` $\rightarrow$ `ml_cplx_*`, `factorial` $\rightarrow$ `ml_factorial`, `npr/ncr` $\rightarrow$ `ml_npr/ml_ncr`, `fft_execute` $\rightarrow$ `ml_fft_execute`.
+    *   Add `const` to all non-mutating pointer arguments (e.g., `double *coeffs` $\rightarrow$ `const double *coeffs` in `polynomial_eval`).
+
+#### 2.3 Eradicate Macro API Pollution
+*   **Mandate:** Macros pretending to be functions break C hygiene and cause double-evaluation bugs.
+*   **Action:**
+    *   In `profiles.h`, delete `#define ml_rsqrt(x) ...`.
+    *   Replace with `ML_INLINE double ml_rsqrt(double x) { ... }` using `#if defined(MATHLIB_PROFILE_GRAPHICS)`.
+
+#### 2.4 The "Math Diary" Protocol (Your Homework)
+*   **Mandate:** You cannot ship what you cannot explain.
+*   **Action:** Create `docs/contracts/`. For every major module, generate a markdown file detailing the Mathematical Identity, Algorithm, Error Budget (ULP), and Failure Modes. *The Blue Team will generate the templates; you must verify them.*
 
 ---
 
-### 📋 The Execution Order for Blue Team (Qwen)
+### 🧮 PHASE 3: Algorithmic & Numerical Surgery (The P0 Math Bugs)
+*The Red Team found silent data corruption, stack overflows, and IEEE-754 violations.*
 
-Hand this exact sequence to Qwen. Do not let it deviate.
+#### 3.1 The `ml_ldexp_pure` & `exponential_ieee754` Catastrophe
+*   **Bug:** `cast.u += ((uint64_t)exp << 52);` corrupts bits if `exp` is negative, because casting a negative `int` to `uint64_t` creates a massive number.
+*   **Fix:** Extract exponent bits, add `exp` as a signed integer, check for overflow/underflow, and re-pack the bits.
 
-1. **Execute Directive 3** (Build System) first. If the build system is broken, nothing else matters.
-2. **Execute Directive 1** (Linkage). Delete `mathlib.c`, fix CMake to `INTERFACE`.
-3. **Execute Directive 2** (Numerical Safety). Fix the 8 bitwise/math flaws.
-4. **Execute Directive 4** (Test Infra). Fix the static globals, delete dead code, fix the fuzzer.
-5. **Execute Directive 5** (Silicon Proof). Verify FMA and AVX2 constants.
-6. **Execute Directive 6** (Docs). Strip the fluff, write the contracts.
+#### 3.2 `gamma_new` Stack Overflow & `integral_traditional` Silent Failure
+*   **Bug:** `gamma_new` recurses infinitely for large `x`. `integral_traditional` silently truncates after 10M steps.
+*   **Fix:**
+    *   Convert `gamma_new` tail-recursion to an iterative `while` loop. Add an overflow guard (`if (x > 171.0) return INF;`).
+    *   Make `integral_traditional` return `NaN` (`0.0/0.0`) if the `max_steps` ceiling is hit, signaling failure instead of returning a wrong answer.
 
-Lead, this is the nitty-gritty. This is the unvarnished truth of what stands between `v11A2` and a bulletproof `v11A3` Release Candidate.
+#### 3.3 `ml_fmod` Integer Overflow & `ml_tan`/`ml_atan2` Zero-Ignorance
+*   **Bug:** `ml_fmod` caps quotient at `9.22e18` (fragile). `ml_tan` returns `-Inf` for `0/0`. `ml_atan2` ignores signed zeros (`+0.0` vs `-0.0`).
+*   **Fix:**
+    *   Rewrite `ml_fmod` to use iterative subtraction for pathological quotients, avoiding the `long long` cast limit.
+    *   Fix `ml_tan`: `if (c == 0.0) return (s == 0.0) ? NaN : ((s > 0) ? INF : -INF);`
+    *   Fix `ml_atan2`: Use `ml_copysign` and explicit `+0.0`/`-0.0` checks to match IEEE-754 Annex F.
 
-Tell me when you are ready to unleash Qwen on **Directive 1**, and we will begin the teardown.
+#### 3.4 `ncr`/`npr` Intermediate Overflow & `cplx_div` Safety
+*   **Bug:** `ncr` multiplies `factorial(n-r) * factorial(r)`, overflowing `uint64_t` before division. `cplx_div` overflows on large complex numbers.
+*   **Fix:**
+    *   Rewrite `ml_ncr` using multiplicative cancellation (e.g., `n * (n-1) ... / r!`).
+    *   Implement **Smith's Method** in `ml_cplx_div` to scale real/imaginary parts and prevent intermediate `denom` overflow/underflow.
+
+#### 3.5 LU Decomposition Singularity Drift
+*   **Bug:** `if (max_val == 0.0)` misses near-singular matrices that cause NaN cascades.
+*   **Fix:** Calculate a relative machine tolerance (`matrix_norm * DBL_EPSILON`) and fail loudly with `ML_ERR_SINGULAR` if the pivot drops below it.
+
+#### 3.6 Branchless SIMD Prep
+*   **Bug:** `if (m < 0.707...)` in `ml_log` causes SIMD execution divergence.
+*   **Fix:** Refactor range adjustments into branchless mask evaluations using bitwise operators and `memcpy`.
+
+---
+
+### 🧪 PHASE 4: The Testing & Verification Overhaul
+*The Red Team proved your test suite is inflated, copy-pasted, and mathematically weak.*
+
+#### 4.1 Fix the Fuzzer (`fuzz_god_mode.c`)
+*   **Bug:** File is truncated mid-function. Random generation misses negative tiny/huge/subnormal values. Tolerances are 450,000 ULPs (useless).
+*   **Fix:**
+    *   Complete the `mul3x3` and `inv3x3` inline functions.
+    *   Fix `rand_double()` to generate negative extremes and exact boundaries (NaN, Inf, -0.0, DBL_MAX).
+    *   Tighten Pythagorean and Exp/Log tolerances to `< 5 ULPs`.
+
+#### 4.2 Fix the Test Harness & Deduplicate
+*   **Bug:** `test.h` and `test_quiet.h` are identical. `test_harness.h` uses `static` globals (linker bomb). `test.c` has 7 copy-pasted assertions.
+*   **Fix:**
+    *   Delete `test_quiet.h`.
+    *   Refactor `test_harness.h` to use an `ml_test_ctx_t` struct passed to tests. No globals.
+    *   Purge all duplicated `ml_exp` and `ml_log` assertions in `test.c`.
+    *   Fix macros to evaluate arguments only once (using `do { ... } while(0)` and temporaries).
+
+#### 4.3 Strengthen Mathematical Validation
+*   **Bug:** Hilbert test only checks for NaN, not the actual answer. FFT Parseval tolerance is 10^7x too loose.
+*   **Fix:**
+    *   Add `ml_matvec` to `linalg.c`. Use it in the Hilbert test to verify the residual `||Ax - b|| < epsilon`.
+    *   Tighten FFT Parseval tolerance to `1e-14`. Use a fixed seed (`srand(42)`) for deterministic reproduction.
+    *   Fix `test_trig.c` to use `ML_PI` instead of hardcoded strings.
+
+#### 4.4 The Regression Vault & Golden Tests
+*   **Bug:** `run_fuzz_vault.py` generates a stub that just prints the seed.
+*   **Fix:** Rewrite the Python script to parse the exact failing inputs from stdout and generate a hardcoded C regression test.
+*   **New Addition:** Create `scripts/oracles/` with Python `mpmath` scripts to generate ground-truth CSVs for the C tests to validate against (Differential Semantic Testing).
+
+---
+
+### ⚙️ PHASE 5: Build System & Toolchain Hardening
+*Makefile and CMake are divergent and lack strictness.*
+
+#### 5.1 Makefile Surgery
+*   **Fix:** Add `-Wconversion`, `-Wshadow`, `-Wpedantic`, `-Wfloat-equal`, and `-Werror`.
+*   **Fix:** Change `LDFLAGS = -lm` to `LDLIBS = -lm`.
+*   **Fix:** Add header dependency tracking (`-MMD -MP` and `-include $(DEPS)`).
+*   **Fix:** Align output paths so `soak_test.sh` can actually find the binaries.
+
+#### 5.2 CMakeLists.txt Surgery
+*   **Fix:** Add `set(CMAKE_C_EXTENSIONS OFF)`.
+*   **Fix:** Validate `MATHLIB_PROFILE` string (fail on "BANANA"). Add `else()` for SCIENTIFIC.
+*   **Fix:** Generate `mathlibConfig.cmake` so `find_package(mathlib)` actually works.
+*   **Fix:** Add `-fsanitize=...` to `add_link_options`.
+*   **Fix:** Put examples and validation tools behind `MATHLIB_BUILD_EXAMPLES` options.
+*   **Fix:** Delete the dead `MATHLIB_ENABLE_LEGACY` option.
+
+---
+
+### 🗑️ PHASE 6: The Purge & Centralization
+*Cleaning up the version schizophrenia and dead code.*
+
+#### 6.1 Delete and Burn
+*   Delete the entire `legacy/` directory.
+*   Delete `compat.h` (or move to an `examples/` folder if strictly needed, but strip the non-portable `#warning`).
+*   Delete `src/mathlib.c`.
+
+#### 6.2 Centralize Constants
+*   **Bug:** `math_pi`, `M_PI`, `3.14159...` are scattered everywhere. `fft.h` uses `math_pi` without guaranteeing its definition.
+*   **Fix:** Define `ML_PI`, `ML_E`, `ML_LN2` exactly once in `ml_core.h`. Eradicate all hardcoded strings and redundant `#ifndef` guards.
+
+#### 6.3 Version Unification
+*   Create `include/mathlib/version.h`.
+*   Standardize all references to **MathLib v11S (11.0.0)**. Update README, CMake, and docs.
+
+---
+
+### 📋 How to Execute This Plan
+
+Orchestrator, this is a massive structural refactor. If you ask the Blue Team to "do Phase 1 through 6" in one prompt, the context window will fracture, and the code will degrade into hallucinations.
+
+**Your Workflow for the Next 2 Weeks:**
+1.  **Copy Phase 1.1 and 1.2.** Feed it to Qwen (Blue Team). Tell it: *"Generate `ml_compiler.h` and rewrite `cpu_dispatch.c` to use compile-time dispatch. Output the exact file contents."*
+2.  **Verify.** Compile. Run `make test`.
+3.  **Copy Phase 1.3.** Feed it to Qwen. Tell it: *"Strip implementations from `ml_trig.h` and `ml_exp_log.h` and move them to `src/trig.c` and `src/exp_log.c`. Use `ML_API`."*
+4.  **Repeat** down the list.
+
+When you hit a mathematical concept you don't understand (e.g., *Smith's Method* or *Horner's Dual Evaluation*), you stop. You ask the **Green Team (GitHub Copilot)** or **Red Team** to explain the *Math Diary* contract for that specific function. You do not let Qwen write the code until you understand the contract.
+
+The A3 Freeze is now officially a **Hardening Refactor**.
+
+Awaiting your command to begin Phase 1.1.

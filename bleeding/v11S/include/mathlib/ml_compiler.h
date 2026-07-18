@@ -1,35 +1,89 @@
 #ifndef MATHLIB_COMPILER_H
 #define MATHLIB_COMPILER_H
 
-/* Compiler identity */
+/* ============================================================================
+ * MATHLIB v11S COMPILER ABSTRACTION LAYER
+ * All compiler-specific extensions, intrinsics, and attributes must be routed
+ * through these macros to ensure cross-platform compatibility (GCC/Clang/MSVC).
+ * ========================================================================== */
+
+/* 1. Compiler Identity */
 #if defined(_MSC_VER)
-#  define MATHLIB_COMPILER_MSVC 1
+#  define ML_COMPILER_MSVC 1
 #elif defined(__clang__)
-#  define MATHLIB_COMPILER_CLANG 1
+#  define ML_COMPILER_CLANG 1
 #elif defined(__GNUC__)
-#  define MATHLIB_COMPILER_GNUC 1
+#  define ML_COMPILER_GNUC 1
+#else
+#  define ML_COMPILER_UNKNOWN 1
 #endif
 
-/* Inline & Alignment abstraction */
-#if defined(MATHLIB_COMPILER_MSVC)
-#  define MATHLIB_INLINE static __forceinline
-#  define MATHLIB_NOINLINE __declspec(noinline)
-#  define MATHLIB_ALIGN(n) __declspec(align(n))
-#  define MATHLIB_RESTRICT __restrict
+/* 2. Inline & Alignment Abstraction */
+#if defined(ML_COMPILER_MSVC)
+#  define ML_INLINE static __forceinline
+#  define ML_NOINLINE __declspec(noinline)
+#  define ML_ALIGN(n) __declspec(align(n))
 #else
-#  define MATHLIB_INLINE static inline __attribute__((always_inline))
-#  define MATHLIB_NOINLINE __attribute__((noinline))
-#  define MATHLIB_ALIGN(n) __attribute__((aligned(n)))
-#  define MATHLIB_RESTRICT restrict
+#  define ML_INLINE static inline __attribute__((always_inline))
+#  define ML_NOINLINE __attribute__((noinline))
+#  define ML_ALIGN(n) __attribute__((aligned(n)))
 #endif
 
-/* Branch prediction hints */
-#if defined(MATHLIB_COMPILER_GNUC) || defined(MATHLIB_COMPILER_CLANG)
-#  define MATHLIB_LIKELY(x) __builtin_expect(!!(x), 1)
-#  define MATHLIB_UNLIKELY(x) __builtin_expect(!!(x), 0)
+/* 3. API Export (Harmless for static libs, required for future DLLs) */
+#if defined(ML_COMPILER_MSVC)
+#  define ML_API __declspec(dllexport)
+#elif defined(ML_COMPILER_GNUC) || defined(ML_COMPILER_CLANG)
+#  define ML_API __attribute__((visibility("default")))
 #else
-#  define MATHLIB_LIKELY(x) (x)
-#  define MATHLIB_UNLIKELY(x) (x)
+#  define ML_API
+#endif
+
+/* 4. Branch Prediction Hints */
+#if defined(ML_COMPILER_GNUC) || defined(ML_COMPILER_CLANG)
+#  define ML_LIKELY(x) __builtin_expect(!!(x), 1)
+#  define ML_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+#  define ML_LIKELY(x) (x)
+#  define ML_UNLIKELY(x) (x)
+#endif
+
+/* 5. Restrict Pointer (C99 / MSVC) */
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
+#  define ML_RESTRICT restrict
+#elif defined(ML_COMPILER_MSVC)
+#  define ML_RESTRICT __restrict
+#else
+#  define ML_RESTRICT
+#endif
+
+/* 6. Target Attributes (for AVX2/FMA routing) */
+#if defined(ML_COMPILER_GNUC) || defined(ML_COMPILER_CLANG)
+#  define ML_TARGET_AVX2 __attribute__((target("avx2,fma")))
+#else
+#  define ML_TARGET_AVX2 /* MSVC uses /arch:AVX2 globally or pragmas */
+#endif
+
+/* 7. Constructor (Library auto-init) */
+#if defined(ML_COMPILER_GNUC) || defined(ML_COMPILER_CLANG)
+#  define ML_CTOR __attribute__((constructor))
+#else
+#  define ML_CTOR /* MSVC requires #pragma init_seg or DllMain */
+#endif
+
+/* 8. Deprecation Warnings */
+#if defined(ML_COMPILER_GNUC) || defined(ML_COMPILER_CLANG)
+#  define ML_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#elif defined(ML_COMPILER_MSVC)
+#  define ML_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+#  define ML_DEPRECATED(msg)
+#endif
+
+/* 9. Compile-time Feature Detection */
+#if defined(__AVX2__) && (defined(__x86_64__) || defined(__i386__))
+#  define ML_COMPILE_TIME_AVX2 1
+#else
+#  define ML_COMPILE_TIME_AVX2 0
 #endif
 
 #endif /* MATHLIB_COMPILER_H */

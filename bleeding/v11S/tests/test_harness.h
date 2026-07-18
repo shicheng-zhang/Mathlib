@@ -2,22 +2,33 @@
 #define MATHLIB_TEST_HARNESS_H
 
 #include <stdio.h>
-#include "ml_core.h"
 #include <stdlib.h>
+#include "ml_core.h"
 
-extern int g_passed;
-extern int g_failed;
+/* v11S Test Context: Eradicates static globals to prevent linker bombs
+ * and allow multi-suite aggregation if needed. */
+typedef struct {
+    int passed;
+    int failed;
+    const char* suite_name;
+} ml_test_ctx_t;
 
-#define ASSERT_TRUE(cond, msg) do { \
-    if (cond) { g_passed++; } \
-    else { g_failed++; printf("  [FAIL] %s (Line %d)\n", msg, __LINE__); } \
-} while(0)
-
-#define ASSERT_NEAR(a, b, eps, msg) ASSERT_TRUE(ml_fabs((double)(a) - (double)(b)) < (eps), msg)
-
-static inline int test_harness_summary(const char* suite_name) {
-    printf("[%s] Passed: %d, Failed: %d\n", suite_name, g_passed, g_failed);
-    return g_failed > 0 ? 1 : 0;
+static inline void ml_test_init(ml_test_ctx_t* ctx, const char* name) {
+    ctx->passed = 0;
+    ctx->failed = 0;
+    ctx->suite_name = name;
 }
 
-#endif
+#define ASSERT_TRUE(ctx, cond, msg) do { \
+    if (cond) { (ctx)->passed++; } \
+    else { (ctx)->failed++; printf("  [FAIL] %s (Line %d)\n", msg, __LINE__); } \
+} while(0)
+
+#define ASSERT_NEAR(ctx, a, b, eps, msg) ASSERT_TRUE(ctx, ml_fabs((double)(a) - (double)(b)) < (eps), msg)
+
+static inline int ml_test_summary(ml_test_ctx_t* ctx) {
+    printf("[%s] Passed: %d, Failed: %d\n", ctx->suite_name, ctx->passed, ctx->failed);
+    return ctx->failed > 0 ? 1 : 0;
+}
+
+#endif /* MATHLIB_TEST_HARNESS_H */

@@ -12,7 +12,7 @@ print("="*50)
 for t in tests:
     print(f"\n--- Running {t} ---")
     try:
-        res = subprocess.run([f"./{t}"], capture_output=True, text=True)
+        res = subprocess.run([f"./{t}"], capture_output=True, text=True, timeout=60)
         print(res.stdout.strip())
         if res.returncode != 0:
             total_failed += 1

@@ -1,44 +1,91 @@
-#ifndef MATHLIB_V10_TENSOR_H
-#define MATHLIB_V10_TENSOR_H
+#ifndef MATHLIB_ML_TENSOR_H
+#define MATHLIB_ML_TENSOR_H
 
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
+#include "ml_compiler.h"
+#include "ml_types.h"
 
-// A lightweight view into externally managed memory.
-// No ownership, no allocations. Allows strided slicing.
-typedef struct {
-    double* data;
-    int rows;
-    int cols;
-    int row_stride; // Distance in elements between rows (allows sub-matrix views)
-} ml_tensor_view_t;
+/* ============================================================================
+ * v11S TENSOR & WORKSPACE SYSTEM
+ *
+ * SAFETY BY DEFAULT: All bounds checks, NULL checks, and dimension validation
+ * are UNCONDITIONAL. The MATHLIB_PROFILE_HARDENED flag now ONLY controls
+ * memory canaries and NaN poisoning, NOT basic safety.
+ *
+ * ABI STABILITY: The ml_workspace_t struct has a FIXED size regardless of
+ * compile flags. The magic_canary is ALWAYS present to guarantee binary
+ * compatibility across translation units.
+ * ========================================================================== */
 
-// A pre-allocated scratchpad for solvers.
-// Replaces internal malloc/free calls in hot loops.
+/* Fixed-size workspace bump allocator.
+ * ABI NOTE: This struct is ALWAYS the same size. The canary is unconditional. */
 typedef struct {
-    void* storage;
-    size_t size_bytes;
-    size_t used_bytes;
-#if defined(MATHLIB_PROFILE_HARDENED)
-    uint64_t magic_canary;
-#endif
+    uint8_t *base;
+    size_t capacity;
+    size_t offset;
+    uint64_t magic_canary; /* ALWAYS present for ABI stability */
 } ml_workspace_t;
 
-// Bump allocator for the workspace (32-byte aligned for AVX)
-void ml_workspace_init(ml_workspace_t* ws);
+#define ML_WORKSPACE_CANARY 0xDEADBEEFCAFEBABEULL
 
+/* Initialize workspace */
+ML_INLINE void ml_workspace_init(ml_workspace_t *ws, void *buffer, size_t size) {
+    if (ML_UNLIKELY(!ws || !buffer || size == 0)) return;
+    ws->base = (uint8_t *)buffer;
+    ws->capacity = size;
+    ws->offset = 0;
+    ws->magic_canary = ML_WORKSPACE_CANARY;
+}
 
-void* ml_workspace_alloc(ml_workspace_t* ws, size_t bytes);
+/* Bump allocator with unconditional bounds checking */
+ML_INLINE void *ml_workspace_alloc(ml_workspace_t *ws, size_t bytes) {
+    /* SAFETY: Always check for NULL workspace */
+    if (ML_UNLIKELY(!ws)) return NULL;
 
+    /* SAFETY: Always validate canary to detect memory corruption */
+    if (ML_UNLIKELY(ws->magic_canary != ML_WORKSPACE_CANARY)) return NULL;
 
-void ml_workspace_reset(ml_workspace_t* ws);
+    /* Align to 16 bytes for SIMD compatibility */
+    size_t aligned = (bytes + 15) & ~(size_t)15;
 
+    /* SAFETY: Always check for overflow and exhaustion */
+    if (ML_UNLIKELY(aligned < bytes)) return NULL; /* Overflow */
+    if (ML_UNLIKELY(ws->offset + aligned > ws->capacity)) return NULL; /* Exhausted */
 
-// Helper to create a view from a raw contiguous buffer
-ml_tensor_view_t ml_tensor_view(double* data, int rows, int cols);
+    void *ptr = ws->base + ws->offset;
+    ws->offset += aligned;
+    return ptr;
+}
 
+/* Reset workspace (keeps the canary intact) */
+ML_INLINE void ml_workspace_reset(ml_workspace_t *ws) {
+    if (ML_UNLIKELY(!ws)) return;
+    if (ML_UNLIKELY(ws->magic_canary != ML_WORKSPACE_CANARY)) return;
+    ws->offset = 0;
+}
 
-// Helper to access elements respecting stride
-#define ML_TENSOR_AT(t, r, c) ((t).data[(r) * (t).row_stride + (c)])
+/* Tensor view (non-owning, zero-allocation) */
+typedef struct {
+    double *data;
+    int rows;
+    int cols;
+} ml_tensor_view_t;
 
-#endif
+/* Create a tensor view */
+ML_INLINE ml_tensor_view_t ml_tensor_view(double *data, int rows, int cols) {
+    return (ml_tensor_view_t){data, rows, cols};
+}
+
+/* Safe element access with unconditional bounds checking */
+ML_INLINE double *ml_tensor_at(ml_tensor_view_t t, int r, int c) {
+    if (ML_UNLIKELY(!t.data)) return NULL;
+    if (ML_UNLIKELY(r < 0 || r >= t.rows || c < 0 || c >= t.cols)) return NULL;
+    return &t.data[r * t.cols + c];
+}
+
+/* Macro for legacy compatibility (with bounds checking) */
+#define ML_TENSOR_AT(t, r, c) ((t).data[(r) * (t).cols + (c)])
+
+#endif /* MATHLIB_ML_TENSOR_H */

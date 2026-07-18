@@ -1,20 +1,7 @@
 #ifndef MATHLIB_COMPAT_H
 #define MATHLIB_COMPAT_H
 
-#if defined(_MSC_VER)
-#pragma message("MathLib V1.1: Using deprecated V1.0 API. Migrate to ml_ prefixed functions.")
-#elif defined(__GNUC__) || defined(__clang__)
-#if defined(_MSC_VER)
-#pragma message("MathLib V1.1: Using deprecated V1.0 API. Migrate to ml_ prefixed functions.")
-#elif defined(__GNUC__) || defined(__clang__)
-#if defined(__GNUC__) || defined(__clang__)
-#if defined(__GNUC__) || defined(__clang__)
 #warning "MathLib V1.1: Using deprecated V1.0 API. Migrate to ml_ prefixed functions."
-#elif defined(_MSC_VER)
-#pragma message("MathLib V1.1: Using deprecated V1.0 API. Migrate to ml_ prefixed functions.")
-#endif
-#endif
-#endif
 
 #define sine(x) ml_sin(x)
 #define cosine(x) ml_cos(x)

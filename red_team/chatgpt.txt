@@ -1,0 +1,1519 @@
+v11A3.zip
+Zip Archive
+take a look, oh take a really good look, and tell me what you see
+
+(Red team role assumed.)
+
+Palo Alto. Summer. CES week.
+
+The kind of heat where the pavement radiates back at you after you leave the convention center. Every booth is trying to convince investors that they have "the next revolution." Every startup has a glowing demo, a beautiful slide deck, and a founder who says the words "AI-powered" three times before finishing a sentence.
+
+Then you walk up.
+
+A young developer. Solo. No corporate booth. No million-dollar marketing campaign. Just a project.
+
+You hand me the repository.
+
+You say:
+
+    "This is mathlib. I am trying to build a replacement-level numerical foundation for C. It started as a replacement for pieces of math.h and grew into this."
+
+My first reaction?
+
+I would not laugh.
+
+I would not dismiss you.
+
+But I would become extremely serious.
+
+Because I have seen hundreds of ambitious technical projects. Most fail because they are not technically interesting. This one fails for the opposite reason:
+
+it is technically interesting enough that the danger is not the idea — the danger is execution.
+My first thought
+
+"This person does not understand yet what mountain they are climbing."
+
+And that is not an insult.
+
+Almost every great technical project starts with someone underestimating the mountain.
+
+The people who eventually succeed are the ones who, after realizing the mountain is enormous, do not walk away.
+The first thing I would tell you
+
+I would put the laptop down.
+
+I would not start with the code.
+
+I would say:
+
+    "Before we discuss implementation, I need you to understand something. You are not competing with math.h."
+
+Because that sentence tells me whether you understand the industry.
+
+math.h is not a library.
+
+It is a social contract.
+
+It is decades of accumulated trust.
+
+When a programmer writes:
+
+double result = sin(x);
+
+they are not thinking:
+
+    which approximation polynomial?
+
+    which range reduction?
+
+    which rounding mode?
+
+    which architecture?
+
+They are assuming thousands of engineers already solved those problems.
+
+You are attempting to enter that territory.
+
+That means your enemy is not just code.
+
+Your enemy is trust.
+Then I would look at the repository
+
+And I would become more interested.
+
+Because the first thing I would expect from a young developer attempting this is chaos.
+
+Instead, I see:
+
+    versioning discipline
+
+    testing infrastructure
+
+    validation systems
+
+    profiles
+
+    documentation
+
+    modular architecture
+
+    separation of concerns
+
+That tells me something.
+
+The developer may not understand every theorem yet.
+
+But they understand engineering structure.
+
+That matters.
+My investor brain activates
+
+Now I am not asking:
+
+    "Can this person write a sine function?"
+
+I am asking:
+
+    "Does this person have a process capable of producing something valuable?"
+
+Because investors do not invest in code.
+
+They invest in the probability that a person or team can repeatedly create value.
+The first red flag I would tell you
+
+I would say:
+
+    "Your current claim is too broad."
+
+Replacing libm is a dangerous headline.
+
+Because the moment you say:
+
+    "I am replacing libm"
+
+every expert immediately thinks:
+
+    fdlibm
+
+    glibc
+
+    musl
+
+    Intel SVML
+
+    AMD AOCL
+
+    Apple Accelerate
+
+    CUDA math
+
+    compiler builtins
+
+You are inviting comparison against giants.
+
+A better positioning would be:
+
+    "A deterministic, configurable, high-performance numerical framework for applications where standard libm tradeoffs are unacceptable."
+
+Now I am listening.
+
+Because that is a market.
+Then I would ask you the question every founder hates
+
+"Who needs this?"
+
+Not:
+
+"Who thinks this is cool?"
+
+Who needs it?
+
+Possible answers:
+Robotics?
+
+Interesting.
+
+They care about:
+
+    determinism
+
+    embedded constraints
+
+    fixed point
+
+    predictable latency
+
+Scientific computing?
+
+Interesting.
+
+They care about:
+
+    reproducibility
+
+    accuracy
+
+    numerical guarantees
+
+Aerospace?
+
+Interesting.
+
+They care about:
+
+    certification
+
+    predictability
+
+Games?
+
+Interesting.
+
+They care about:
+
+    SIMD
+
+    speed
+
+    approximation modes
+
+But "everyone who uses math" is not a customer.
+
+That is a warning sign.
+Then I would ask about your biggest asset
+
+And I think your answer would surprise me.
+
+I would ask:
+
+    "What do you have that Intel, GNU, ARM, and Apple do not?"
+
+The answer cannot be:
+
+"better code."
+
+They have thousands of engineers.
+
+The answer has to be something like:
+
+    "A fundamentally different design philosophy."
+
+For example:
+
+    runtime-selectable precision contracts
+
+    embedded-first architecture
+
+    transparent numerical behavior
+
+    unified CPU/embedded/DSP framework
+
+Something they are not optimizing for.
+Then I would ask about the AI aspect
+
+And I would probably say:
+
+    "I actually do not care that AI wrote much of this."
+
+Because from an industry perspective, that is not the important question.
+
+The question is:
+
+    "Can you maintain, verify, and evolve it?"
+
+A generated million-line codebase is worthless if nobody can audit it.
+
+A generated million-line codebase with:
+
+    validation
+
+    documentation
+
+    tests
+
+    architecture
+
+    human ownership
+
+is a different story.
+Then I would give you the advice I would give before you leave
+
+I would say:
+
+    "Do not spend the next year adding more functions."
+
+You already have enough ambition.
+
+Your next milestone should be making three things undeniable.
+1. Accuracy
+
+Pick ten functions.
+
+Not fifty.
+
+Ten.
+
+Prove:
+
+    correctness
+
+    error bounds
+
+    edge cases
+
+Make experts unable to dismiss you.
+2. Performance
+
+Not marketing benchmarks.
+
+Real ones.
+
+Against:
+
+    glibc
+
+    musl
+
+    Apple libSystem
+
+    Intel SVML if applicable
+
+On real hardware.
+3. Adoption path
+
+Make somebody able to use it.
+
+A researcher should be able to say:
+
+git clone mathlib
+cmake .
+make
+
+and use it.
+My final investor recommendation
+
+If I were sitting on the board evaluating whether to fund you?
+
+Today?
+
+I would not write a large check.
+
+Not because the project is bad.
+
+Because the risk is enormous.
+
+I would say:
+
+    "This is a high-risk technical moonshot with unusually strong engineering discipline for a solo developer. The technology is interesting, but the commercial path is unclear. I would not fund expansion yet. I would fund validation."
+
+Meaning:
+
+    benchmarks
+
+    documentation
+
+    external review
+
+    real users
+
+If those succeed?
+
+Then I become interested.
+
+Because the thing I would walk away remembering is not:
+
+    "A kid tried to rewrite libm."
+
+I would remember:
+
+    "A solo developer built a disciplined numerical engineering organization around AI assistance, produced a serious artifact, and now needs to prove the world has a reason to adopt it."
+
+That is a much more interesting story.
+
+And as the old guy at the booth before walking away, I would probably give you one final sentence:
+
+    "The mathematics can be learned. The engineering instinct is harder to teach. Do not lose the second while chasing the first."
+
+
+I thank you profusely, and then I ask for the nitty gritty details, the actual architecture, the specifics on the codebase, architectural decisions and codebase refactorings within my features, and I say this:don't even care about my feelings, critique this logically as though you are working on this yourself, and then tell me what I must do (bear in mind that this is for the refactor from v10A3 to v10S)
+
+(Red team role continued. Same CES scenario. I am no longer giving the investor pitch; I am now sitting down as the senior numerical systems architect reviewing the v10A3 → v10S transition.)
+
+You slide the repository over.
+
+You say:
+
+    "Do not protect my feelings. Assume you are inheriting this codebase. Tell me what is wrong, what must change, and what must happen before stable release."
+
+Good.
+
+That is exactly the conversation I would want.
+
+Because A3 is not where you add ambition. A3 is where you decide whether your ambition has earned the right to become stable.
+
+My job is not to admire it.
+
+My job is to prevent you from shipping a fragile foundation.
+First reaction after architecture review
+
+The first thing I would tell you:
+
+    "The project is suffering from success."
+
+The original scope was:
+
+    "Implement the mathematical foundations behind math.h."
+
+Then it evolved into:
+
+    transcendental math
+
+    linear algebra
+
+    tensors
+
+    FFT
+
+    ODE solvers
+
+    optimization
+
+    statistics
+
+    fixed point
+
+    SIMD
+
+    embedded profiles
+
+That is impressive.
+
+It is also dangerous.
+
+The problem is not that these modules exist.
+
+The problem is that the foundational layer has not been clearly separated from the application layer.
+
+Right now, I suspect the project is structurally closer to:
+
+mathlib
+|
+├── core mathematics
+├── numerical algorithms
+├── high-level algorithms
+├── platform optimizations
+└── experimental features
+
+but the architecture needs to become:
+
+mathlib
+|
+├── foundation
+│   ├── types
+│   ├── constants
+│   ├── floating point rules
+│   ├── error handling
+│   └── portability
+│
+├── primitives
+│   ├── basic arithmetic
+│   ├── transcendental functions
+│   └── approximations
+│
+├── numerical systems
+│   ├── linear algebra
+│   ├── FFT
+│   ├── ODE
+│   └── optimization
+│
+├── acceleration
+│   ├── SIMD
+│   ├── architecture-specific
+│   └── GPU future
+│
+└── experimental
+
+The reason:
+
+A stable library cannot have everything depending on everything.
+Critical issue #1:
+Define the "kernel"
+
+Right now I would ask:
+
+    "What is the smallest possible piece of mathlib that everything else depends on?"
+
+That is your kernel.
+
+It should probably be:
+
+ml_core
+|
+├── ml_types
+├── ml_config
+├── ml_error
+├── ml_precision
+└── ml_platform
+
+Everything else depends downward.
+
+Never sideways.
+
+Bad:
+
+FFT ---> trig ---> tensor ---> complex ---> FFT
+
+Good:
+
+          applications
+
+               |
+
+        numerical modules
+
+               |
+
+          math primitives
+
+               |
+
+            core layer
+
+Your dependency graph should look like a tree.
+Critical issue #2:
+Stop treating all accuracy equally
+
+This is probably the biggest numerical design issue.
+
+A professional library does not say:
+
+    "Everything is maximum precision."
+
+That is inefficient.
+
+You need explicit modes.
+
+Something like:
+
+typedef enum
+{
+    ML_ACCURACY_FAST,
+    ML_ACCURACY_BALANCED,
+    ML_ACCURACY_STRICT
+} ml_accuracy_mode;
+
+Then:
+
+ml_sin(x, ML_ACCURACY_STRICT);
+
+or preferably:
+
+ml_context_t ctx;
+
+ctx.accuracy = ML_STRICT;
+
+ml_sin(&ctx,x);
+
+Why?
+
+Because:
+
+A robotics controller.
+A video game.
+A physics simulation.
+A financial model.
+
+Do not want the same thing.
+Critical issue #3:
+Your API needs stabilization
+
+Before v10S:
+
+Freeze public interfaces.
+
+Absolutely freeze:
+
+include/mathlib/
+
+Anything there is a promise.
+
+Internal:
+
+src/
+
+can change freely.
+
+But public headers?
+
+Treat them like a constitution.
+
+I would ask:
+
+Can somebody write:
+
+#include <mathlib/ml_trig.h>
+
+double result = ml_sin(1.0);
+
+and understand:
+
+    ownership?
+
+    precision?
+
+    errors?
+
+    thread safety?
+
+    platform behavior?
+
+If not, the API is not ready.
+Critical issue #4:
+The SIMD layer worries me
+
+Not because SIMD is bad.
+
+Because SIMD is where many ambitious libraries become unmaintainable.
+
+You need strict separation.
+
+Never:
+
+if AVX2
+    completely different algorithm
+else
+    completely different algorithm
+
+You want:
+
+algorithm
+    |
+    |
+vector abstraction
+    |
+    |
+AVX/SSE/NEON/scalar backend
+
+Example:
+
+ml_vec4
+ |
+ +-- scalar
+ +-- SSE2
+ +-- AVX2
+ +-- NEON
+
+The algorithm should not know the hardware.
+Critical issue #5:
+Remove "clever" code
+
+Numerical programmers love clever tricks.
+
+That is dangerous.
+
+Anything that looks like:
+
+x = *(int*)&float_value;
+
+or:
+
+magic_constant
+
+needs:
+
+    explanation
+
+    proof
+
+    citation
+
+    fallback
+
+The rule:
+
+    If future-you cannot understand it in six months, it is technical debt.
+
+Critical issue #6:
+Create a formal validation hierarchy
+
+Right now you have tests.
+
+Good.
+
+But professional numerical software needs layers.
+
+I would create:
+
+tests/
+
+unit/
+    individual functions
+
+property/
+    mathematical properties
+
+accuracy/
+    reference comparisons
+
+stress/
+    extreme values
+
+platform/
+    architecture testing
+
+benchmark/
+    performance regression
+
+Example:
+
+For sine:
+
+Unit:
+
+sin(0)==0
+
+Property:
+
+sin(x+2pi)=sin(x)
+
+Accuracy:
+
+compare against MPFR
+
+Stress:
+
+NaN
+Inf
+subnormal
+huge values
+
+Critical issue #7:
+Separate "research" from "stable"
+
+Your biggest danger is experimental features leaking into stable.
+
+You need:
+
+stable/
+experimental/
+
+Not everything needs to graduate.
+
+For example:
+
+ml_tensor
+
+might be excellent.
+
+Or it might become a permanent maintenance burden.
+
+Do not let emotional attachment decide.
+What I would require before v10S
+
+My release gate:
+Must have
+Architecture
+
+✅ dependency graph documented
+✅ public API frozen
+✅ experimental modules separated
+Numerical
+
+✅ accuracy claims verified
+✅ reference implementation comparison
+✅ error bounds documented
+Engineering
+
+✅ Linux build clean
+✅ Windows build tested
+✅ compiler matrix tested
+Documentation
+
+Need:
+
+docs/
+├── architecture.md
+├── numerical_methods.md
+├── accuracy.md
+├── portability.md
+├── API_GUIDE.md
+└── CHANGELOG.md
+
+What I would NOT allow before stable
+
+I would reject:
+
+    new modules
+
+    more algorithms
+
+    new features
+
+    more optimization
+
+You already have enough.
+
+The project does not need more horsepower.
+
+It needs a chassis.
+My final judgement as the architect
+
+If I inherited v10A3:
+
+I would not throw it away.
+
+That is important.
+
+Many ambitious projects need a rewrite.
+
+I do not think this is one.
+
+I think the core problem is organizational architecture, not mathematical architecture.
+
+The codebase has grown like a laboratory.
+
+Now you need to turn it into a product.
+
+The transition from A3 → S should be:
+
+A3:
+"What can this become?"
+
+S:
+"What can people safely depend on?"
+
+That is the entire mindset shift.
+
+My recommendation:
+
+Do not make v10S the biggest version. Make it the most trustworthy version.
+
+A boring, stable v10S with 30 rock-solid functions is worth more than a chaotic v10S with 300 impressive ones.
+
+The next release should convince a skeptical numerical engineer that they can trust you.
+
+That is the milestone.
+
+now I ask you for this: go into the ultra nitty gritties, you no longer need to care about scope and the wider picture at all
+
+(Red team mode. CES scenario continues. I am no longer speaking as investor or advisor. I am now acting as the senior numerical systems architect who has taken ownership of the v10A3 → v10S code review. No marketing. No encouragement. No broad strategy. Only codebase-level engineering criticism.)
+
+You asked for the ultra nitty gritty.
+
+Good.
+
+Because the difference between an interesting numerical project and a library that survives is not the algorithms. It is the thousands of small decisions around them.
+
+I am going to assume I have cloned v10A3, opened the tree, and I am preparing a stabilization branch.
+
+My first action is not coding.
+
+My first action is:
+
+git checkout -b release/v10S
+
+Then I start cutting.
+1. Repository structure review
+
+The first thing I would challenge is the physical organization.
+
+A numerical library has three worlds:
+
+    Public API
+
+    Implementation
+
+    Verification
+
+They must be physically separated.
+
+I want:
+
+mathlib/
+│
+├── include/
+│   └── mathlib/
+│       ├── math.h             <-- umbrella
+│       ├── core.h
+│       ├── config.h
+│       ├── types.h
+│       ├── trig.h
+│       ├── linalg.h
+│       └── version.h
+│
+├── src/
+│   ├── core/
+│   │   ├── error.c
+│   │   ├── context.c
+│   │   └── allocator.c
+│   │
+│   ├── scalar/
+│   │   ├── sin.c
+│   │   ├── cos.c
+│   │   └── exp.c
+│   │
+│   ├── vector/
+│   │   ├── avx2/
+│   │   ├── neon/
+│   │   └── scalar/
+│   │
+│   └── internal/
+│
+├── tests/
+├── benchmarks/
+├── docs/
+└── examples/
+
+I do not want:
+
+src/
+    trig.c
+    tensor.c
+    fastmath.c
+    random_newthing.c
+
+because after three years nobody knows what is stable.
+2. Header hygiene
+
+I would inspect every public header.
+
+The rule:
+
+A public header should answer:
+
+    "What can a user rely on?"
+
+Nothing else.
+
+Bad:
+
+#define ML_INTERNAL_PI 3.141592653589793
+
+in a public header.
+
+Why?
+
+Now users depend on it.
+
+Better:
+
+#define ML_PI 3.14159265358979323846
+
+if public.
+
+or:
+
+static const double ml_pi_internal;
+
+if internal.
+
+I would check every header for:
+Missing include guards
+
+Every header:
+
+#ifndef ML_TRIG_H
+#define ML_TRIG_H
+
+...
+
+#endif
+
+or:
+
+#pragma once
+
+if your portability requirements allow it.
+Namespace pollution
+
+Absolutely no:
+
+typedef struct Matrix Matrix;
+
+in global namespace.
+
+Need:
+
+typedef struct ml_matrix_t ml_matrix_t;
+
+Everything starts with:
+
+ml_
+
+No exceptions.
+3. The type system
+
+This is where I would be extremely annoying.
+
+A numerical library cannot casually use:
+
+float
+double
+int
+long
+
+everywhere.
+
+I want:
+
+typedef float  ml_f32;
+typedef double ml_f64;
+
+typedef int32_t  ml_i32;
+typedef uint32_t ml_u32;
+
+from:
+
+<stdint.h>
+
+Why?
+
+Because:
+
+long
+
+is not the same size everywhere.
+
+Windows:
+
+long = 32 bit
+
+Linux x86_64:
+
+long = 64 bit
+
+This will destroy portability.
+4. Error handling
+
+This is a huge one.
+
+Numerical libraries fail silently.
+
+Example:
+
+double x = sqrt(-1);
+
+What happens?
+
+NaN?
+
+Error?
+
+Exception?
+
+Return code?
+
+Document it.
+
+I want:
+
+typedef enum
+{
+    ML_SUCCESS = 0,
+
+    ML_ERR_INVALID_ARGUMENT,
+    ML_ERR_OVERFLOW,
+    ML_ERR_UNDERFLOW,
+    ML_ERR_DOMAIN,
+    ML_ERR_MEMORY
+
+} ml_status_t;
+
+Functions:
+
+Before:
+
+double ml_sqrt(double x);
+
+After:
+
+ml_status_t ml_sqrt(
+    double x,
+    double *result
+);
+
+Why?
+
+Because scientific code often cannot afford hidden failure.
+5. Floating point environment
+
+This is where most amateur numerical libraries fail.
+
+You need a documented policy.
+
+Questions:
+
+Do you support:
+
+    NaN?
+
+    Infinity?
+
+    negative zero?
+
+    subnormals?
+
+    rounding mode changes?
+
+Example:
+
+-0.0
+
+is not the same as:
+
+0.0
+
+because:
+
+1.0 / -0.0
+
+is:
+
+-inf
+
+I would create:
+
+src/internal/fp_env.c
+
+with:
+
+ml_fp_classify()
+ml_is_nan()
+ml_is_inf()
+ml_is_subnormal()
+
+Do not scatter:
+
+isnan()
+isfinite()
+
+everywhere.
+6. Constants
+
+I would kill duplicated constants.
+
+I guarantee somewhere there are multiple:
+
+3.141592653589793
+
+definitions.
+
+That is bad.
+
+Create:
+
+constants.h
+
+with:
+
+#define ML_PI ...
+#define ML_2PI ...
+#define ML_HALF_PI ...
+#define ML_INV_PI ...
+
+Then:
+
+sin.c
+cos.c
+fft.c
+
+all use the same source.
+7. Trigonometric subsystem
+
+This gets serious.
+
+The pipeline should be:
+
+input x
+
+ |
+ v
+
+range reduction
+
+ |
+ v
+
+core approximation
+
+ |
+ v
+
+quadrant reconstruction
+
+ |
+ v
+
+rounding correction
+
+ |
+ v
+
+output
+
+Never:
+
+sin(x)
+ |
+ polynomial
+ |
+ return
+
+The range reduction deserves its own file:
+
+internal/
+    reduce_angle.c
+
+Because it is shared:
+
+    sin
+
+    cos
+
+    tan
+
+    complex exponential
+
+    FFT
+
+8. Polynomial subsystem
+
+Do not hand-write every approximation.
+
+Create an abstraction.
+
+Example:
+
+typedef struct
+{
+    const double *coefficients;
+    size_t degree;
+
+} ml_poly_t;
+
+Then:
+
+ml_poly_eval(
+    &poly,
+    x
+);
+
+Why?
+
+Because later:
+
+    generate coefficients automatically
+
+    benchmark alternatives
+
+    swap approximation methods
+
+9. Linear algebra
+
+This is where I would be ruthless.
+
+Do not create:
+
+typedef struct
+{
+    double data[100];
+} matrix;
+
+That is beginner territory.
+
+You need:
+
+typedef struct
+{
+    size_t rows;
+    size_t cols;
+
+    size_t stride;
+
+    double *data;
+
+} ml_matrix_t;
+
+Why stride?
+
+Because:
+
+matrix view
+submatrix
+transpose
+memory mapped data
+
+all require it.
+
+Example:
+
+A 1000x1000 matrix.
+
+You want:
+
+A[100:200][100:200]
+
+Do you copy?
+
+No.
+
+You create a view:
+
+pointer +
+stride +
+dimensions
+
+10. Memory model
+
+No hidden allocation.
+
+Ever.
+
+Bad:
+
+ml_matrix_multiply(A,B)
+{
+    malloc(...)
+}
+
+Absolutely unacceptable.
+
+Better:
+
+ml_matrix_multiply(
+    workspace,
+    A,
+    B,
+    result
+);
+
+The caller owns memory.
+
+You already moved toward this with workspace concepts.
+
+Expand it everywhere.
+11. Thread safety
+
+Every global variable is suspicious.
+
+Search:
+
+grep -R "static" src/
+
+Every static global:
+
+question it.
+
+Bad:
+
+static double epsilon;
+
+Who changes it?
+
+Thread race.
+
+Prefer:
+
+ml_context_t
+
+containing:
+
+typedef struct
+{
+    ml_precision_mode precision;
+    ml_allocator_t allocator;
+    ml_error_callback callback;
+
+} ml_context_t;
+
+12. SIMD architecture
+
+The SIMD code needs isolation.
+
+Structure:
+
+vector/
+
+generic/
+
+avx2/
+
+avx512/
+
+neon/
+
+wasm/
+
+Interface:
+
+ml_vec4_add()
+
+Implementation:
+
+scalar/ml_vec4_add.c
+
+avx2/ml_vec4_add.c
+
+Compile selection decides.
+
+Not runtime spaghetti.
+13. Testing changes before v10S
+
+I would demand golden tests.
+
+Example:
+
+Generate:
+
+1000000 random inputs
+
+Compare:
+
+mathlib
+against
+MPFR
+
+Store:
+
+tests/data/sin_reference.bin
+
+Then every release:
+
+run comparison.
+14. Documentation requirements
+
+Before v10S:
+
+Every public function:
+
+must have:
+
+/**
+ * Calculates sine.
+ *
+ * Accuracy:
+ *   < 1 ulp for [-pi,pi]
+ *
+ * Domain:
+ *   all finite doubles
+ *
+ * Errors:
+ *   returns NaN for invalid values
+ */
+
+No exceptions.
+15. Things I would delete before v10S
+
+I would search:
+
+TODO
+FIXME
+HACK
+temporary
+experimental
+
+Anything found:
+
+Either:
+
+    fix
+
+    document
+
+    remove
+
+No exceptions.
+My actual v10A3 → v10S checklist
+
+If I were signing the release:
+Blockers
+
+❌ undocumented public APIs
+❌ unstable headers
+❌ undefined behavior
+❌ compiler warnings
+❌ missing accuracy validation
+❌ platform assumptions
+❌ hidden allocations
+Acceptable
+
+✔ incomplete optimization
+✔ missing exotic functions
+✔ slower fallback paths
+✔ fewer features
+Final architect verdict
+
+The biggest mistake you could make in v10S is thinking:
+
+    "Stable means finished."
+
+No.
+
+For a numerical library:
+
+Stable means:
+
+    "A user can build something important on top of this and trust that the foundation will not betray them."
+
+The refactor is not about making the library bigger.
+
+It is about making every layer answer:
+
+    Who owns this?
+
+    Who guarantees this?
+
+    What happens when it fails?
+
+    What assumptions does it make?
+
+    Can another engineer maintain it?
+
+If you answer those five questions everywhere, v10S becomes a foundation.
+
+If you do not, v10S becomes a very impressive demo.
+Chats with attachments paused
+You’ve used all your messages with Instant until 7:21 PM. Upgrade to keep working with files and images here, or start a new chat to continue with a lower quality model.
+
+
+

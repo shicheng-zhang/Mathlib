@@ -1,10 +1,10 @@
-# MathLib V1.0
+# MathLib v11S (Stable)
 ![C99 Standard](https://img.shields.io/badge/C-99-blue.svg)
 ![Zero Allocation](https://img.shields.io/badge/Heap-Zero%20Alloc-brightgreen.svg)
 ![Invariant Audited](https://img.shields.io/badge/Fuzzer-65,000%2B%20Assertions-orange.svg)
 ![Bare Metal](https://img.shields.io/badge/SIMD-AVX2%20Optimized-red.svg)
 
-**MathLib V1.0** is a high-performance, zero-dependency, bare-metal C99 scientific computing engine. 
+**MathLib v11S** is a high-performance, zero-dependency, bare-metal C99 scientific computing engine. 
 
 Engineered to eliminate `<math.h>` dependencies, eradicate heap allocations in hot loops, and provide high-throughput determinism for high-throughput pipelines.
 

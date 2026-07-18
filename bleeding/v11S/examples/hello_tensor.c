@@ -9,8 +9,8 @@ int main() {
 
     // 1. Define a client-managed scratchpad (No malloc!)
     char scratchpad[4096];
-    ml_workspace_t ws = { .storage = scratchpad, .size_bytes = sizeof(scratchpad), .used_bytes = 0 };
-    ml_workspace_init(&ws);
+    ml_workspace_t ws;
+    ml_workspace_init(&ws, scratchpad, sizeof(scratchpad));
 
     // 2. Define a simple 2x2 system: Ax = b
     // [ 2  0 ] [ x1 ]   [ 4 ]

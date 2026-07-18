@@ -50,12 +50,17 @@ int failed = 0;
 #define CHECK_INF(a, msg) CHECK(ml_isinf(a), msg)
 
 double rand_double() {
-    int type = rand() % 5;
-    if (type == 0) return (double)rand() / RAND_MAX * 2000.0 - 1000.0; // Normal
-    if (type == 1) return (double)rand() / RAND_MAX * 1e-15; // Tiny
-    if (type == 2) return (double)rand() / RAND_MAX * 1e15; // Huge
-    if (type == 3) return (double)rand() / RAND_MAX * 2.2250738585072014e-308; // Subnormal boundary
-    return (double)rand() / RAND_MAX * 100.0;
+    int type = rand() % 10;
+    if (type == 0) return (double)rand() / RAND_MAX * 2000.0 - 1000.0; // Normal [-1000, 1000]
+    if (type == 1) return (double)rand() / RAND_MAX * 2e-15 - 1e-15;  // Tiny [-1e-15, 1e-15]
+    if (type == 2) return (double)rand() / RAND_MAX * 2e15 - 1e15;    // Huge [-1e15, 1e15]
+    if (type == 3) return (double)rand() / RAND_MAX * 4.45e-308 - 2.225e-308; // Subnormal boundary
+    if (type == 4) return 0.0;                                        // Exact zero
+    if (type == 5) return -0.0;                                       // Negative zero
+    if (type == 6) return 1.0 / 0.0;                                  // Infinity
+    if (type == 7) return -1.0 / 0.0;                                 // Negative Infinity
+    if (type == 8) return 0.0 / 0.0;                                  // NaN
+    return (double)rand() / RAND_MAX * 200.0 - 100.0;                 // Standard [-100, 100]
 }
 
 double rand_pos_double() {
@@ -96,7 +101,7 @@ void test_trig_identities() {
         double c = ml_cos(x);
 
         double pyth = s*s + c*c;
-        if (!(ml_fabs(pyth - 1.0) < 1e-10)) {
+        if (!(ml_fabs(pyth - 1.0) < 1e-14)) {
             failed++; printf("FAIL: Pythagorean | x: %.15g | s: %.15g | c: %.15g | s^2+c^2: %.15g\n", x, s, c, pyth);
         } else { passed++; }
 
@@ -105,16 +110,16 @@ void test_trig_identities() {
         double sin2x = 2.0 * s * c;
         double cos2x = c*c - s*s;
 
-        if (!(ml_fabs(s2 - sin2x) < 1e-9)) {
+        if (!(ml_fabs(s2 - sin2x) < 1e-13)) {
             failed++; printf("FAIL: sin(2x) | x: %.15g | sin(2x): %.15g | 2sc: %.15g\n", x, s2, sin2x);
         } else { passed++; }
 
-        if (!(ml_fabs(c2 - cos2x) < 1e-9)) {
+        if (!(ml_fabs(c2 - cos2x) < 1e-13)) {
             failed++; printf("FAIL: cos(2x) | x: %.15g | cos(2x): %.15g | c^2-s^2: %.15g\n", x, c2, cos2x);
         } else { passed++; }
 
-        double phase = ml_sin(x + 3.14159265358979323846 / 2.0);
-        if (!(ml_fabs(phase - c) < 1e-9)) {
+        double phase = ml_sin(x + ML_PI / 2.0);
+        if (!(ml_fabs(phase - c) < 1e-13)) {
             failed++; printf("FAIL: sin(x+pi/2) | x: %.15g | sin(x+pi/2): %.15g | cos(x): %.15g\n", x, phase, c);
         } else { passed++; }
     }
@@ -129,14 +134,14 @@ void test_exp_log_properties() {
         double lx = ml_log(x);
         if (lx > -700.0 && lx < 700.0) {
             double exp_lx = ml_exp(lx);
-            if (!(ml_fabs(exp_lx - x) < ml_fabs(x) * 1e-9 + 1e-12)) {
+            if (!(ml_fabs(exp_lx - x) < ml_fabs(x) * 1e-14 + 1e-15)) {
                 failed++; printf("FAIL: exp(log(x)) | x: %.15g | log(x): %.15g | exp(log(x)): %.15g\n", x, lx, exp_lx);
             } else { passed++; }
         }
         if (x < 700.0) {
             double exp_x = ml_exp(x);
             double log_exp = ml_log(exp_x);
-            if (!(ml_fabs(log_exp - x) < 1e-9)) {
+            if (!(ml_fabs(log_exp - x) < 1e-13)) {
                 failed++; printf("FAIL: log(exp(x)) | x: %.15g | exp(x): %.15g | log(exp(x)): %.15g\n", x, exp_x, log_exp);
             } else { passed++; }
         }
@@ -146,7 +151,7 @@ void test_exp_log_properties() {
         if (x > 2.2250738585072014e-308 && y > 2.2250738585072014e-308 && prod > 2.2250738585072014e-308 && !ml_isinf(prod)) {
             double log_prod = ml_log(prod);
             double log_sum = ml_log(x) + ml_log(y);
-            if (!(ml_fabs(log_prod - log_sum) < ml_fabs(ml_log(x)) * 1e-9 + 1e-9)) {
+            if (!(ml_fabs(log_prod - log_sum) < ml_fabs(ml_log(x)) * 1e-13 + 1e-14)) {
                 failed++; printf("FAIL: log(xy) | x: %.15g | y: %.15g | log(xy): %.15g | log(x)+log(y): %.15g\n", x, y, log_prod, log_sum);
             } else { passed++; }
         }
@@ -155,7 +160,7 @@ void test_exp_log_properties() {
         if (p < 1e100 && p > 1e-100) {
             double log_p = ml_log(p);
             double y_log_x = y * ml_log(x);
-            if (!(ml_fabs(log_p - y_log_x) < 1e-8)) {
+            if (!(ml_fabs(log_p - y_log_x) < 1e-13)) {
                 failed++; printf("FAIL: log(x^y) | x: %.15g | y: %.15g | log(x^y): %.15g | y*log(x): %.15g\n", x, y, log_p, y_log_x);
             } else { passed++; }
         }
@@ -263,14 +268,14 @@ void test_complex_identities() {
         cplx z1 = {rand_bounded_double(), rand_bounded_double()};
         cplx z2 = {rand_bounded_double(), rand_bounded_double()};
 
-        cplx prod = cplx_mul(z1, z2);
-        double abs_prod = cplx_abs(prod);
-        double abs1_abs2 = cplx_abs(z1) * cplx_abs(z2);
+        cplx prod = ml_cplx_mul(z1, z2);
+        double abs_prod = ml_cplx_abs(prod);
+        double abs1_abs2 = ml_cplx_abs(z1) * ml_cplx_abs(z2);
 
         double tol_c = ml_fabs(abs1_abs2) * 1e-7 + 1e-12;
         CHECK_NEAR_LOOSE(abs_prod, abs1_abs2, tol_c, "abs(z1*z2) == abs(z1)*abs(z2)");
 
-        cplx euler = cplx_exponential((cplx){0.0, 3.14159265358979323846});
+        cplx euler = ml_cplx_exponential((cplx){0.0, ML_PI});
         CHECK_NEAR(euler.real, -1.0, 1e-9, "e^(i*pi) == -1 (real)");
         CHECK_NEAR(euler.imag, 0.0, 1e-9, "e^(i*pi) == 0 (imag)");
     }
@@ -279,8 +284,8 @@ void test_complex_identities() {
 void test_v10_tensor_solver() {
     printf("--- v10 Zero-Alloc Tensor Solver (100 iterations) ---\n");
     char scratchpad[1024 * 1024];
-    ml_workspace_t ws = { .storage = scratchpad, .size_bytes = sizeof(scratchpad), .used_bytes = 0 };
-    ml_workspace_init(&ws);
+    ml_workspace_t ws;
+    ml_workspace_init(&ws, scratchpad, sizeof(scratchpad));
 
     for(int iter=0; iter<100; iter++) {
         ml_workspace_reset(&ws);
@@ -348,9 +353,9 @@ void test_fixed_point_cordic() {
     for(int i=0; i<1000; i++) {
         double angle = rand_double();
         // O(1) range reduction to prevent infinite loop on massive inputs
-        angle = ml_fmod(angle, 2.0 * 3.14159265358979323846);
-        if (angle > 3.14159265358979323846) angle -= 2.0 * 3.14159265358979323846;
-        if (angle < -3.14159265358979323846) angle += 2.0 * 3.14159265358979323846;
+        angle = ml_fmod(angle, 2.0 * ML_PI);
+        if (angle > ML_PI) angle -= 2.0 * ML_PI;
+        if (angle < -ML_PI) angle += 2.0 * ML_PI;
 
         ml_q16_16_t fixed_angle = (ml_q16_16_t)(angle * 65536.0);
         ml_q16_16_t f_sin, f_cos;
@@ -365,7 +370,7 @@ void test_fixed_point_cordic() {
 }
 
 int main() {
-    unsigned int seed = time(NULL);
+    unsigned int seed = (unsigned int)time(NULL);
     srand(seed);
     printf("Fuzz Seed: %u\n", seed);
     printf("=========================================================\n");

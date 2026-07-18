@@ -22,12 +22,12 @@ static inline double stddev (double *data, int n) {return ml_sqrt(variance (data
 static inline double binomial_pmf (int n, int k, double p);
 static inline double binomial_pmf (int n, int k, double p) {
     if (k < 0 || k > n || p < 0 || p > 1) {return 0.0 / 0.0;}
-    return ncr (n, k) * ml_pow(p, k) * ml_pow(1 - p, n - k);
+    return (double)ncr(n, k) * ml_pow(p, k) * ml_pow(1 - p, n - k);
 } static inline double normal_pdf (double x, double mu, double sigma);
 static inline double normal_pdf (double x, double mu, double sigma) {
     if (sigma <= 0) {return 0.0 / 0.0;}
     double z = (x - mu) / sigma;
-    return (1 / ml_sqrt(2 * math_pi * sigma * sigma)) * ml_exp (-z * z / 2);
+    return (1 / ml_sqrt(2 * ML_PI * sigma * sigma)) * ml_exp (-z * z / 2);
 } static inline void linear_regression (double *x, double *y, int n, double *out_m, double *out_b);
 static inline void linear_regression (double *x, double *y, int n, double *out_m, double *out_b) {
     double sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0;

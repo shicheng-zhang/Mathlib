@@ -1,27 +1,23 @@
 #ifndef MATHLIB_CPU_DISPATCH_H
 #define MATHLIB_CPU_DISPATCH_H
 
-typedef struct {
-    int avx2_supported;
-    int fma_supported;
-    int sse41_supported;
-    int neon_supported;
-    int initialized;
-} ml_cpu_caps_t;
+#include "ml_compiler.h"
 
-extern ml_cpu_caps_t g_ml_cpu_caps;
+/* ============================================================================
+ * v11S CPU DISPATCH & CAPABILITIES
+ *
+ * ARCHITECTURAL SHIFT: Runtime dispatch and global state have been eradicated
+ * to guarantee thread-safety and strict adherence to the "No Global State"
+ * contract. Dispatch is now handled at compile-time via ML_COMPILE_TIME_AVX2.
+ * ========================================================================== */
 
-void ml_init_cpu_dispatch(void);
+/* Core Matrix Multiplication API (Exported) */
+ML_API void ml_matmul(const double* ML_RESTRICT A, const double* ML_RESTRICT B, double* ML_RESTRICT C, int N);
 
-typedef void (*ml_matmul_func_t)(const double* A, const double* B, double* C, int N);
-extern ml_matmul_func_t g_ml_matmul;
+/* Compile-Time Capability Queries (Exported) */
+ML_API int ml_cpu_has_avx2(void);
+ML_API int ml_cpu_has_fma(void);
+ML_API int ml_cpu_has_sse41(void);
+ML_API int ml_cpu_has_neon(void);
 
-void ml_matmul_scalar(const double* A, const double* B, double* C, int N);
-void ml_matmul_avx2(const double* A, const double* B, double* C, int N);
-
-static inline void ml_matmul(const double* A, const double* B, double* C, int N) {
-    if (!g_ml_cpu_caps.initialized) ml_init_cpu_dispatch();
-    g_ml_matmul(A, B, C, N);
-}
-
-#endif
+#endif /* MATHLIB_CPU_DISPATCH_H */
