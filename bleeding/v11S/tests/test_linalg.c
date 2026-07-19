@@ -20,7 +20,7 @@ int main() {
     double x[2] = {0};
 
     ml_tensor_view_t A_view = ml_tensor_view(A, 2, 2);
-    int status = ml_solve_v10(A_view, b, x, &ws);
+    int status = ml_solve(A_view, b, x, &ws);
 
     ASSERT_TRUE(&ctx, status == ML_SUCCESS, "Solver status");
     /* Solution to [1 2; 3 4] * [x1; x2] = [5; 11] is x1 = 1, x2 = 2 */

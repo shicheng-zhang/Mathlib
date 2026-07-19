@@ -3,8 +3,11 @@
 This document defines the strict architectural and operational boundaries of MathLib.
 Any future contributions must adhere to these policies.
 
+## Changelog Note (v11S)
+* The `MATHLIB_PROFILE_HARDENED` CMake option has been removed. Safety checks (NULL bounds, dimension validation) are now **unconditional** and compiled into all profiles by default.
+
 ## 1. Memory Policy
-* **Zero Internal Allocation:** Core APIs (`ml_solve_v10`, `ml_fft_execute`, etc.) will **never** call `malloc`, `calloc`, or `free`.
+* **Zero Internal Allocation:** Core APIs (`ml_solve`, `ml_fft_execute`, etc.) will **never** call `malloc`, `calloc`, or `free`.
 * **Client-Provided Scratchpads:** Any operation requiring temporary memory must accept a `ml_workspace_t` bump-allocator from the caller.
 * **Legacy Isolation:** Modules requiring heap allocation are strictly quarantined in the `legacy/` directory and are not part of the core static library.
 

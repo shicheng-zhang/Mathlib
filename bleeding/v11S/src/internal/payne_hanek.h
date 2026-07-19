@@ -11,13 +11,6 @@ static const double
 PIO2_HI = 0x1.921fb54442d18p+0,  // 1.5707963267948966 (53 bits)
 PIO2_LO = 0x1.1a62633145c07p-54; // 6.123233995736766e-17 (next 53 bits)
 
-// Helper to generate a guaranteed IEEE-754 Quiet NaN without relying on 0.0/0.0 UB
-static inline double ml_make_nan(void) {
-    uint64_t nan_bits = 0x7FF8000000000000ULL;
-    double nan_val;
-    memcpy(&nan_val, &nan_bits, sizeof(double));
-    return nan_val;
-}
 
 /* v11S CONTRACT:
  * Uses Error-Free Transformations (Dekker/Knuth) to perform exact Cody-Waite

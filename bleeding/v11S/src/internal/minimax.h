@@ -52,7 +52,7 @@ static inline double ml_minimax_cos_raw(double x) {
 static inline double ml_minimax_sin(double x) {
     double y;
     int n = ml_rem_pio2(x, &y);
-    if (ml_isnan(y)) return 0.0/0.0;
+    if (ml_isnan(y)) return ml_make_nan();
 
     switch (n) {
         case 0: return  ml_minimax_sin_raw(y);
@@ -60,13 +60,13 @@ static inline double ml_minimax_sin(double x) {
         case 2: return -ml_minimax_sin_raw(y);
         case 3: return -ml_minimax_cos_raw(y);
     }
-    return 0.0/0.0;
+    return ml_make_nan();
 }
 
 static inline double ml_minimax_cos(double x) {
     double y;
     int n = ml_rem_pio2(x, &y);
-    if (ml_isnan(y)) return 0.0/0.0;
+    if (ml_isnan(y)) return ml_make_nan();
 
     switch (n) {
         case 0: return  ml_minimax_cos_raw(y);
@@ -74,7 +74,7 @@ static inline double ml_minimax_cos(double x) {
         case 2: return -ml_minimax_cos_raw(y);
         case 3: return  ml_minimax_sin_raw(y);
     }
-    return 0.0/0.0;
+    return ml_make_nan();
 }
 
 #endif

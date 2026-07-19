@@ -14,7 +14,7 @@
 
 // Pure IEEE 754 Bit-Masking Logarithm
 ML_INLINE double logarithm_ieee754(double x) {
-    if (x <= 0.0) return 0.0 / 0.0;
+    if (x <= 0.0) return ml_make_nan();
     if (x == 1.0) return 0.0;
 
     uint64_t bits;
@@ -76,7 +76,7 @@ ML_INLINE double exponential_ieee754(double x) {
     int64_t new_exp = current_exp + n;
 
     if (new_exp <= 0) return 0.0; // Underflow
-    if (new_exp >= 0x7FF) return (res < 0) ? -1.0 / 0.0 : 1.0 / 0.0; // Overflow
+    if (new_exp >= 0x7FF) return (res < 0) ? -ml_make_inf(0) : ml_make_inf(0); // Overflow
 
     bits = (bits & 0x800FFFFFFFFFFFFFULL) | ((uint64_t)new_exp << 52);
 

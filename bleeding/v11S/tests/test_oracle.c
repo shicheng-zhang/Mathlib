@@ -17,14 +17,13 @@
 #endif
 
 /* Exact ULP distance calculator (handles sign-bit crossing) */
-static int64_t ulp_distance(double a, double b) {
-    int64_t ia, ib;
-    memcpy(&ia, &a, sizeof(int64_t));
-    memcpy(&ib, &b, sizeof(int64_t));
-    if (ia < 0) ia = 0x8000000000000000LL - ia;
-    if (ib < 0) ib = 0x8000000000000000LL - ib;
-    int64_t diff = ia - ib;
-    return diff < 0 ? -diff : diff;
+static uint64_t ulp_distance(double a, double b) {
+    uint64_t ia, ib;
+    memcpy(&ia, &a, sizeof(uint64_t));
+    memcpy(&ib, &b, sizeof(uint64_t));
+    if (ia >> 63) ia = 0x8000000000000000ULL - ia;
+    if (ib >> 63) ib = 0x8000000000000000ULL - ib;
+    return ia > ib ? ia - ib : ib - ia;
 }
 
 int main() {

@@ -1,7 +1,7 @@
 #include "ml_compiler.h"
 #include "ml_linalg.h"
 
-ML_API ml_status_t ml_lu_decomp_v10(ml_tensor_view_t A, ml_tensor_view_t LU, int* P, ml_workspace_t* ws) {
+ML_API ml_status_t ml_lu_decomp(ml_tensor_view_t A, ml_tensor_view_t LU, int* P, ml_workspace_t* ws) {
     (void)ws;
     int n = A.rows;
 
@@ -59,7 +59,7 @@ ML_API ml_status_t ml_lu_decomp_v10(ml_tensor_view_t A, ml_tensor_view_t LU, int
     return ML_SUCCESS;
 }
 
-ML_API ml_status_t ml_solve_v10(ml_tensor_view_t A, double* b, double* x, ml_workspace_t* ws) {
+ML_API ml_status_t ml_solve(ml_tensor_view_t A, double* b, double* x, ml_workspace_t* ws) {
     int n = A.rows;
 
     /* SAFETY BY DEFAULT: Unconditional NULL checks */
@@ -74,7 +74,7 @@ ML_API ml_status_t ml_solve_v10(ml_tensor_view_t A, double* b, double* x, ml_wor
     if (ML_UNLIKELY(!lu_data || !P || !y)) return ML_ERR_WORKSPACE;
 
     ml_tensor_view_t LU = ml_tensor_view(lu_data, n, n);
-    ml_status_t status = ml_lu_decomp_v10(A, LU, P, ws);
+    ml_status_t status = ml_lu_decomp(A, LU, P, ws);
     if (status != ML_SUCCESS) return status;
 
     for (int i = 0; i < n; i++) {

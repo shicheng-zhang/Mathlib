@@ -8,17 +8,17 @@
 // Include the entire v10.5 engine
 #include "ml_core.h"
 #include "bitwise_fp.h"
-#include "combinatorics.h"
-#include "quadratics.h"
-#include "integral.h"
+#include "ml_combinatorics.h"
+#include "ml_quadratics.h"
+#include "ml_integral.h"
 #include "ml_trig.h"
 #include "ml_exp_log.h"
-#include "numerical.h"
-#include "polynomial.h"
+#include "ml_numerical.h"
+#include "ml_polynomial.h"
 #include "ml_complex.h"
-#include "statistics.h"
-#include "ode.h"
-#include "optimization.h"
+#include "ml_statistics.h"
+#include "ml_ode.h"
+#include "ml_optimization.h"
 #include "fft.h"
 #include "fast_math.h"
 #include "internal/error_free.h"
@@ -27,11 +27,11 @@
 #include "internal/minimax.h"
 #include "ieee754.h"
 #include "simd.h"
-#include "quaternion.h"
+#include "ml_quaternion.h"
 #include "ml_tensor.h"
 #include "ml_linalg.h"
 #include "ml_types.h"
-#include "fixed_point.h"
+#include "ml_fixed_point.h"
 #include "simd_bare_metal.h"
 #include "simd_batch.h"
 #include "profiles.h"
@@ -57,9 +57,9 @@ double rand_double() {
     if (type == 3) return (double)rand() / RAND_MAX * 4.45e-308 - 2.225e-308; // Subnormal boundary
     if (type == 4) return 0.0;                                        // Exact zero
     if (type == 5) return -0.0;                                       // Negative zero
-    if (type == 6) return 1.0 / 0.0;                                  // Infinity
-    if (type == 7) return -1.0 / 0.0;                                 // Negative Infinity
-    if (type == 8) return 0.0 / 0.0;                                  // NaN
+    if (type == 6) return ml_make_inf(0);                                  // Infinity
+    if (type == 7) return -ml_make_inf(0);                                 // Negative Infinity
+    if (type == 8) return ml_make_nan();                                  // NaN
     return (double)rand() / RAND_MAX * 200.0 - 100.0;                 // Standard [-100, 100]
 }
 
@@ -75,7 +75,7 @@ double rand_bounded_double() {
 
 void test_ieee754_specials() {
     printf("--- IEEE 754 Special Values Gauntlet ---\n");
-    double specials[] = {0.0, -0.0, (1.0/0.0), -(1.0/0.0), (0.0/0.0), 1.7976931348623157e+308, 2.2250738585072014e-308, 5e-324};
+    double specials[] = {0.0, -0.0, (ml_make_inf(0)), -(ml_make_inf(0)), (ml_make_nan()), 1.7976931348623157e+308, 2.2250738585072014e-308, 5e-324};
     int n = sizeof(specials)/sizeof(specials[0]);
 
     for(int i=0; i<n; i++) {
@@ -169,8 +169,8 @@ void test_exp_log_properties() {
 void test_catastrophic_cancellation() {
     printf("--- Catastrophic Cancellation & Stability ---\n");
 
-    double r1 = formula_pos(1.0, 1e8, 1.0);
-    double r2 = formula_neg(1.0, 1e8, 1.0);
+    double r1 = ml_formula_pos(1.0, 1e8, 1.0);
+    double r2 = ml_formula_neg(1.0, 1e8, 1.0);
     CHECK_NEAR(r1, -1e-8, 1e-15, "Citardauq small root");
     CHECK_NEAR(r2, -1e8, 1.0, "Citardauq large root");
 
@@ -305,7 +305,7 @@ void test_v10_tensor_solver() {
         }
 
         ml_tensor_view_t A_view = ml_tensor_view(A_data, 4, 4);
-        int status = ml_solve_v10(A_view, b_data, x_data, &ws);
+        int status = ml_solve(A_view, b_data, x_data, &ws);
         CHECK(status == ML_SUCCESS, "Tensor solve status");
 
         for(int i=0; i<4; i++) {

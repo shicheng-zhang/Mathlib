@@ -17,4 +17,4 @@ This document defines the permanent public interface for MathLib v1.1.
 
 ## Error Handling Contract
 * Core math (`ml_sin`, `ml_exp`) returns IEEE-754 `double` (`NaN`/`Inf` for domain errors).
-* Complex operations (`ml_solve_v10`) return `ml_status_t` enum.
+* Complex operations (`ml_solve`) return `ml_status_t` enum.

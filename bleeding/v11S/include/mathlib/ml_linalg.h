@@ -6,8 +6,8 @@
 #include "ml_core.h"
 #include "ml_types.h"
 
-ML_API ml_status_t ml_lu_decomp_v10(ml_tensor_view_t A, ml_tensor_view_t LU, int* P, ml_workspace_t* ws);
-ML_API ml_status_t ml_solve_v10(ml_tensor_view_t A, double* b, double* x, ml_workspace_t* ws);
+ML_API ml_status_t ml_lu_decomp(ml_tensor_view_t A, ml_tensor_view_t LU, int* P, ml_workspace_t* ws);
+ML_API ml_status_t ml_solve(ml_tensor_view_t A, double* b, double* x, ml_workspace_t* ws);
 
 
 /* Matrix-Vector Multiplication (y = Ax) */

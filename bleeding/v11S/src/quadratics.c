@@ -7,7 +7,7 @@ ML_API double ml_equation(double a, double b, double c, double x) {
 
 ML_API double ml_formula_pos(double a, double b, double c) {
     double disc = b * b - 4 * a * c;
-    if (disc < 0.0) return 0.0 / 0.0;
+    if (disc < 0.0) return ml_make_nan();
     if (b >= 0.0) {
         double q = -0.5 * (b + ml_sqrt(disc));
         return c / q;
@@ -19,7 +19,7 @@ ML_API double ml_formula_pos(double a, double b, double c) {
 
 ML_API double ml_formula_neg(double a, double b, double c) {
     double disc = b * b - 4 * a * c;
-    if (disc < 0.0) return 0.0 / 0.0;
+    if (disc < 0.0) return ml_make_nan();
     if (b >= 0.0) {
         double q = -0.5 * (b + ml_sqrt(disc));
         return q / a;

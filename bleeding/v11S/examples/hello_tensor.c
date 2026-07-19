@@ -22,7 +22,7 @@ int main() {
     ml_tensor_view_t A_view = ml_tensor_view(A_data, 2, 2);
 
     // 3. Solve using the zero-alloc engine
-    ml_status_t status = ml_solve_v10(A_view, b_data, x_data, &ws);
+    ml_status_t status = ml_solve(A_view, b_data, x_data, &ws);
 
     if (status == ML_SUCCESS) {
         printf("✅ Success! Solution:\n");

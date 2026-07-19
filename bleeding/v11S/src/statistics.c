@@ -22,12 +22,12 @@ ML_API double ml_stddev(const double *data, int n) {
 }
 
 ML_API double ml_binomial_pmf(int n, int k, double p) {
-    if (k < 0 || k > n || p < 0 || p > 1) return 0.0 / 0.0;
+    if (k < 0 || k > n || p < 0 || p > 1) return ml_make_nan();
     return (double)ml_ncr(n, k) * ml_pow(p, k) * ml_pow(1 - p, n - k);
 }
 
 ML_API double ml_normal_pdf(double x, double mu, double sigma) {
-    if (sigma <= 0) return 0.0 / 0.0;
+    if (sigma <= 0) return ml_make_nan();
     double z = (x - mu) / sigma;
     return (1.0 / ml_sqrt(2.0 * ML_PI * sigma * sigma)) * ml_exp(-z * z / 2.0);
 }
@@ -41,7 +41,7 @@ ML_API void ml_linear_regression(const double *x, const double *y, int n, double
         sum_x2 += x[i] * x[i];
     }
     double denom = n * sum_x2 - sum_x * sum_x;
-    if (denom == 0) { *out_m = 0.0 / 0.0; *out_b = 0.0 / 0.0; return; }
+    if (denom == 0) { *out_m = ml_make_nan(); *out_b = ml_make_nan(); return; }
     *out_m = (n * sum_xy - sum_x * sum_y) / denom;
     *out_b = (sum_y * sum_x2 - sum_x * sum_xy) / denom;
 }

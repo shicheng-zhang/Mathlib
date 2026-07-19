@@ -29,15 +29,15 @@ MathLib avoids overclaiming "strict IEEE-754" across the board. Instead, we guar
 | Module | Guarantee | Implementation |
 | :--- | :--- | :--- |
 | **Bitwise Parsers** (`ml_isnan`, `ml_fabs`) | **100% IEEE-754 Exact** | Pure 64-bit integer bitmasking. Zero branching. |
-| **Transcendentals** (`ml_sin`, `ml_exp`) | **< 1 ULP Error** | 19th-degree Maclaurin series + Payne-Hanek reduction. |
+| **Transcendentals** (`ml_sin`, `ml_exp`) | **≤ 5 ULP (Software Bound)** | 19th-degree Minimax polynomial + Cody-Waite reduction. |
 | **Fast Math** (`ml_fast_rsqrt`) | **< 10^-4 Relative Error** | Quake III integer-cast bit-hack + 2x Newton-Raphson. |
-| **Linear Algebra** (`ml_solve_v10`) | **Zero Heap Allocation** | Client-provided scratchpad bump-allocator (`ml_workspace_t`). |
+| **Linear Algebra** (`ml_solve`) | **Zero Heap Allocation** | Client-provided scratchpad bump-allocator (`ml_workspace_t`). |
 
 ## 🏗️ Architecture & Profiles
 MathLib uses compile-time hardware profiling to route math functions to the optimal implementation:
 
 *   **`SCIENTIFIC` (Default):** Strict precision, 19th-degree polynomials, Payne-Hanek range reduction.
-*   **`GRAPHICS`:** Blazing fast AVX2 SIMD batch processing and Quake III `rsqrt` bit-hacks.
+*   **`GRAPHICS`:** Blazing fast AVX2 SIMD batch processing and Quake III `rsqrt` bit-hacks (Compile-time dispatch).
 *   **`EMBEDDED`:** True Q16.16 Fixed-Point CORDIC. Zero floats, zero FPU dependencies.
 
 ## 🧪 Testing & Invariant Fuzzing
@@ -47,13 +47,6 @@ MathLib ships with a deterministic smoke test and two dedicated property-based i
 make test           # Runs the lean CI/CD smoke test
 make fuzz_god_mode  # Unleashes 65,000+ randomized algebraic & IEEE-754 assertions
 make fuzz_boundary  # Tests exact mathematical boundaries and energy conservation
-```
-
-## 🔄 Migration Guide (Linker-Level Wrapping)
-If you have an existing codebase heavily reliant on standard `libm`, you do not need to rewrite your code. Use the GCC linker wrap flag to seamlessly route standard calls into MathLib:
-
-```bash
-gcc your_app.c -Wl,--wrap=sin -Wl,--wrap=cos -lmathc -lm
 ```
 
 ## 📜 License

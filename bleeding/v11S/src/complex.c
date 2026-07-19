@@ -9,19 +9,19 @@ ML_API double ml_cplx_arg(cplx a) {
     if (a.real < 0 && a.imag < 0) return ml_atan(a.imag / a.real) - ML_PI;
     if (a.real == 0 && a.imag > 0) return ML_PI / 2.0;
     if (a.real == 0 && a.imag < 0) return -ML_PI / 2.0;
-    return 0.0 / 0.0;
+    return ml_make_nan();
 }
 
 /* FIX: Smith's Method to prevent intermediate overflow/underflow in complex division */
 ML_API cplx ml_cplx_div(cplx a, cplx b) {
     double ratio, denom;
     if (ml_fabs(b.real) >= ml_fabs(b.imag)) {
-        if (b.real == 0.0) return (cplx){0.0/0.0, 0.0/0.0};
+        if (b.real == 0.0) return (cplx){ml_make_nan(), ml_make_nan()};
         ratio = b.imag / b.real;
         denom = b.real + ratio * b.imag;
         return (cplx){(a.real + a.imag * ratio) / denom, (a.imag - a.real * ratio) / denom};
     } else {
-        if (b.imag == 0.0) return (cplx){0.0/0.0, 0.0/0.0};
+        if (b.imag == 0.0) return (cplx){ml_make_nan(), ml_make_nan()};
         ratio = b.real / b.imag;
         denom = b.imag + ratio * b.real;
         return (cplx){(a.real * ratio + a.imag) / denom, (a.imag * ratio - a.real) / denom};

@@ -2,13 +2,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <limits.h>
-#include <string.h>
 #include <time.h>
 #include "ml_core.h"
 #include "bitwise_fp.h"
 #include "ml_trig.h"
 #include "ml_exp_log.h"
-#include "fixed_point.h"
+#include "ml_fixed_point.h"
 #include "ml_tensor.h"
 #include "ml_linalg.h"
 #include "ml_types.h"
@@ -84,7 +83,7 @@ void test_tensor_hilbert() {
         }
     }
     ml_tensor_view_t A_view = ml_tensor_view(A_data, n, n);
-    int status = ml_solve_v10(A_view, b_data, x_data, &ws);
+    int status = ml_solve(A_view, b_data, x_data, &ws);
     CHECK(status == ML_SUCCESS, "Hilbert solve status");
 
     // FIXED: Actually validate the solution using residual ||Ax - b||

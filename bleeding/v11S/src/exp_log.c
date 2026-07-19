@@ -3,7 +3,7 @@
 
 ML_API double ml_exp(double x) {
     if (x == 0.0) return 1.0;
-    if (x > 709.78) return 1.0 / 0.0;
+    if (x > 709.78) return ml_make_inf(0);
     if (x < -745.13) return 0.0;
 
     /* Cody-Waite extended precision reduction (Already branchless) */
@@ -21,15 +21,15 @@ ML_API double ml_exp(double x) {
 
     /* Horner's Method (Branchless) */
     double result = inv_fact[19];
-    for (int i = 18; i >= 1; i--) result = __builtin_fma(result, r, inv_fact[i]);
-    result = __builtin_fma(result, r, 1.0);
+    for (int i = 18; i >= 1; i--) result = ML_FMA(result, r, inv_fact[i]);
+    result = ML_FMA(result, r, 1.0);
 
     return ml_ldexp_pure(result, (int)n);
 }
 
 ML_API double ml_log(double x) {
-    if (x == 0.0) return -1.0 / 0.0;
-    if (x < 0.0) return 0.0 / 0.0;
+    if (x == 0.0) return -ml_make_inf(0);
+    if (x < 0.0) return ml_make_nan();
     if (x == 1.0) return 0.0;
 
     int e;
@@ -68,5 +68,5 @@ ML_API double ml_sinh(double x) { return (ml_exp(x) - ml_exp(-x)) / 2.0; }
 ML_API double ml_cosh(double x) { return (ml_exp(x) + ml_exp(-x)) / 2.0; }
 ML_API double ml_tanh(double x) { return ml_sinh(x) / ml_cosh(x); }
 ML_API double ml_asinh(double x) { return ml_log(x + ml_sqrt(x * x + 1.0)); }
-ML_API double ml_acosh(double x) { return (x < 1.0) ? 0.0/0.0 : ml_log(x + ml_sqrt(x * x - 1.0)); }
-ML_API double ml_atanh(double x) { return (x <= -1.0 || x >= 1.0) ? 0.0/0.0 : 0.5 * ml_log((1.0 + x) / (1.0 - x)); }
+ML_API double ml_acosh(double x) { return (x < 1.0) ? ml_make_nan() : ml_log(x + ml_sqrt(x * x - 1.0)); }
+ML_API double ml_atanh(double x) { return (x <= -1.0 || x >= 1.0) ? ml_make_nan() : 0.5 * ml_log((1.0 + x) / (1.0 - x)); }

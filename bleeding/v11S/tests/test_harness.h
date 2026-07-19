@@ -24,7 +24,11 @@ static inline void ml_test_init(ml_test_ctx_t* ctx, const char* name) {
     else { (ctx)->failed++; printf("  [FAIL] %s (Line %d)\n", msg, __LINE__); } \
 } while(0)
 
-#define ASSERT_NEAR(ctx, a, b, eps, msg) ASSERT_TRUE(ctx, ml_fabs((double)(a) - (double)(b)) < (eps), msg)
+#define ASSERT_NEAR(ctx, a, b, eps, msg) do { \
+    double _a = (double)(a); double _b = (double)(b); \
+    if (ml_fabs(_a - _b) < (eps)) { (ctx)->passed++; } \
+    else { (ctx)->failed++; printf("  [FAIL] %s (Line %d) got %.17g expected %.17g diff %.17g\n", msg, __LINE__, _a, _b, ml_fabs(_a - _b)); } \
+} while(0)
 
 static inline int ml_test_summary(ml_test_ctx_t* ctx) {
     printf("[%s] Passed: %d, Failed: %d\n", ctx->suite_name, ctx->passed, ctx->failed);

@@ -24,7 +24,7 @@ ML_API double ml_polynomial_newton(const double *coeffs, int degree, double x0, 
             dfx = dfx * x + fx;
             fx = fx * x + coeffs[i];
         }
-        if (ml_fabs(dfx) < epsilon) return 0.0 / 0.0;
+        if (ml_fabs(dfx) < epsilon) return ml_make_nan();
         double x_next = x - fx / dfx;
         if (ml_fabs(x_next - x) < epsilon) return x_next;
         x = x_next;

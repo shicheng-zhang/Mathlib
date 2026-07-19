@@ -27,8 +27,8 @@ ML_INLINE double ml_fast_rsqrt(double number) {
 
 // Fast Log2 using the integer-float isomorphism
 ML_INLINE double ml_fast_log2(double x) {
-    if (x < 0.0) return 0.0 / 0.0;
-    if (x == 0.0) return -1.0 / 0.0;
+    if (x < 0.0) return ml_make_nan();
+    if (x == 0.0) return -ml_make_inf(0);
     if (ml_isinf(x) || ml_isnan(x)) return x;
 
     uint64_t bits;

@@ -29,7 +29,7 @@
 #include "fast_math.h"
 #include "ml_tensor.h"
 #include "ml_linalg.h"
-#include "fixed_point.h"
+#include "ml_fixed_point.h"
 #include "profiles.h"
 #include "ml_quaternion.h"
 #include "simd.h"
@@ -126,7 +126,7 @@ int main() {
     double x_vec[2] = {0.0, 0.0};
     ml_tensor_view_t A_view = ml_tensor_view(A, 2, 2);
 
-    int status = ml_solve_v10(A_view, b_vec, x_vec, &ws);
+    int status = ml_solve(A_view, b_vec, x_vec, &ws);
     ASSERT_TRUE(&ctx, status == ML_SUCCESS, "linalg_solve status");
     ASSERT_NEAR(&ctx, x_vec[0], 2.0, 1e-9, "linalg x[0]");
 

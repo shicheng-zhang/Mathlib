@@ -6,7 +6,7 @@ ML_API double ml_newton_raphson(ml_func_t f, ml_func_t df, double x0, double eps
     for (int i = 0; i < max_iter; i++) {
         double fx = f(x);
         double dfx = df(x);
-        if (ml_fabs(dfx) < epsilon) return 0.0 / 0.0;
+        if (ml_fabs(dfx) < epsilon) return ml_make_nan();
         double x_next = x - fx / dfx;
         if (ml_fabs(x_next - x) < epsilon) return x_next;
         x = x_next;
@@ -17,7 +17,7 @@ ML_API double ml_newton_raphson(ml_func_t f, ml_func_t df, double x0, double eps
 ML_API double ml_bisection(ml_func_t f, double a, double b, double epsilon, int max_iter) {
     double fa = f(a);
     double fb = f(b);
-    if (fa * fb > 0) return 0.0 / 0.0;
+    if (fa * fb > 0) return ml_make_nan();
     double c = a;
     for (int i = 0; i < max_iter; i++) {
         c = (a + b) / 2;
@@ -40,7 +40,7 @@ ML_API double ml_second_derivative(ml_func_t f, double x, double h) {
 ML_API double ml_integral_simpson(ml_func_t f, double a, double b, int n) {
     // Simpson's rule strictly requires an even number of subintervals (n >= 2).
     // We reject odd n with NaN instead of silently altering the user's grid.
-    if (n % 2 == 1 || n < 2) return 0.0 / 0.0;
+    if (n % 2 == 1 || n < 2) return ml_make_nan();
     double h = (b - a) / n;
     double result = f(a) + f(b);
     for (int i = 1; i < n; i++) {

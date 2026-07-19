@@ -1,7 +1,7 @@
 CC = gcc
 # Strict C99 warnings, dependency tracking, and IEEE-754 determinism
 # NOTE: -Wfloat-equal is intentionally omitted (The Float-Equal Paradox).
-CFLAGS = -std=c99 -O3 -Wall -Wextra -Wconversion -Wshadow -Wpedantic -Werror -fno-fast-math -ffp-contract=off -Iinclude/mathlib -MMD -MP
+CFLAGS = -std=c99 -O3 -Wall -Wextra -Wconversion -Wshadow -Wpedantic -Werror -fno-fast-math -ffp-contract=off -Iinclude/mathlib -Isrc -MMD -MP
 LDLIBS = -lm
 
 SRC = src/core.c src/trig.c src/exp_log.c src/complex.c src/linalg.c src/fft.c src/cpu_dispatch.c src/combinatorics.c src/quadratics.c src/polynomial.c src/numerical.c src/statistics.c src/integral.c src/ode.c src/optimization.c src/quaternion.c src/fixed_point.c

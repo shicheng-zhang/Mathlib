@@ -2,10 +2,10 @@
 #include "ml_trig.h"
 #include "internal/minimax.h"
 #include "internal/cordic.h"
-#include "fixed_point.h"
+#include "ml_fixed_point.h"
 
 ML_API double ml_sin(double x) {
-    if (ml_isnan(x) || ml_isinf(x)) return 0.0/0.0;
+    if (ml_isnan(x) || ml_isinf(x)) return ml_make_nan();
 #if defined(MATHLIB_PROFILE_EMBEDDED)
     x = ml_fmod(x, 2.0 * ML_PI);
     ml_q16_16_t f_in = (ml_q16_16_t)(x * 65536.0);
@@ -18,7 +18,7 @@ ML_API double ml_sin(double x) {
 }
 
 ML_API double ml_cos(double x) {
-    if (ml_isnan(x) || ml_isinf(x)) return 0.0/0.0;
+    if (ml_isnan(x) || ml_isinf(x)) return ml_make_nan();
 #if defined(MATHLIB_PROFILE_EMBEDDED)
     x = ml_fmod(x, 2.0 * ML_PI);
     ml_q16_16_t f_in = (ml_q16_16_t)(x * 65536.0);
@@ -34,8 +34,8 @@ ML_API double ml_tan(double x) {
     double s = ml_sin(x);
     double c = ml_cos(x);
     if (c == 0.0) {
-        if (s == 0.0) return 0.0 / 0.0; /* NaN for 0/0 */
-        return (s > 0) ? (1.0 / 0.0) : (-1.0 / 0.0);
+        if (s == 0.0) return ml_make_nan(); /* NaN for 0/0 */
+        return (s > 0) ? (ml_make_inf(0)) : (-ml_make_inf(0));
     }
     return s / c;
 }
@@ -52,12 +52,12 @@ ML_API double ml_atan(double x) {
 }
 
 ML_API double ml_asin(double x) {
-    if (x < -1.0 || x > 1.0) return 0.0 / 0.0;
+    if (x < -1.0 || x > 1.0) return ml_make_nan();
     return 2.0 * ml_atan(x / (1.0 + ml_sqrt(1.0 - x * x)));
 }
 
 ML_API double ml_acos(double x) {
-    if (x < -1.0 || x > 1.0) return 0.0 / 0.0;
+    if (x < -1.0 || x > 1.0) return ml_make_nan();
     return (ML_PI / 2.0) - ml_asin(x);
 }
 
