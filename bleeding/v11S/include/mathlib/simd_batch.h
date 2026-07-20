@@ -2,6 +2,7 @@
 #define MATHLIB_SIMD_BATCH_H
 
 #include "profiles.h"
+#include "ml_core.h"
 
 #if defined(__AVX2__)
 #include <immintrin.h>
@@ -38,7 +39,7 @@ static inline void ml_simd_batch_poly(const double* in, double* out) {
     for(int i=0; i<4; i++) out[i] = (in[i] * in[i]) + in[i];
 }
 static inline void ml_simd_batch_rsqrt(const double* in, double* out) {
-    for(int i=0; i<4; i++) out[i] = (in[i] > 0.0) ? (1.0 / __builtin_sqrt(in[i])) : 0.0;
+    for(int i=0; i<4; i++) out[i] = (in[i] > 0.0) ? (1.0 / ml_sqrt(in[i])) : 0.0;
 }
 #endif
 

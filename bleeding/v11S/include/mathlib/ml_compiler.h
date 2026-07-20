@@ -31,7 +31,13 @@
 
 /* 3. API Export (Harmless for static libs, required for future DLLs) */
 #if defined(ML_COMPILER_MSVC)
-#  define ML_API __declspec(dllexport)
+#  if defined(MATHLIB_BUILD_SHARED)
+#    define ML_API __declspec(dllexport)
+#  elif defined(MATHLIB_USE_SHARED)
+#    define ML_API __declspec(dllimport)
+#  else
+#    define ML_API
+#  endif
 #elif defined(ML_COMPILER_GNUC) || defined(ML_COMPILER_CLANG)
 #  define ML_API __attribute__((visibility("default")))
 #else

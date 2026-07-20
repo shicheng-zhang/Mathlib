@@ -1,4 +1,6 @@
 # Math Diary: Linear Algebra (Zero-Alloc LU Decomposition)
+
+> **v11S Closure Status:** LU solve uses partial pivoting, relative singularity thresholding, workspace alignment/canary hardening, and invalid-argument guards.
 > **Orchestrator's Mission:** You cannot ship what you cannot explain.
 > Use this document to reverse-engineer the AI-generated code in `src/linalg.c & include/mathlib/ml_tensor.h`.
 > Consult the Red Team (Gemini/ChatGPT) or Green Team (Copilot) to fill in the blanks.

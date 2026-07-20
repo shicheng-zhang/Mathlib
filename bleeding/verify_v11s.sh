@@ -23,7 +23,7 @@ gcc -std=c99 -O3 -fPIE -fsanitize=address,undefined -fno-omit-frame-pointer -Iin
 /tmp/oracle_check
 echo "[5/5] Unleashing the Ultimate Fuzzer (ASan/UBSan)..."
 gcc -std=c99 -O3 -fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude/mathlib -Isrc -o /tmp/ultimate_fuzz tests/ultimate_fuzzer.c -Lbuild -lmathc -lm
-/tmp/ultimate_fuzz
+/tmp/ultimate_fuzz "${MATHLIB_ULTIMATE_SEED:-123456789}"
 echo "========================================================="
-echo "🎉 ALL VERIFICATION CHECKS PASSED. v11S IS IMMUTABLE."
+echo "🎉 ALL VERIFICATION CHECKS PASSED. v11S closure candidate verified."
 echo "========================================================="

@@ -51,10 +51,16 @@ void test_bitwise_ieee754() {
             double ml_res = ml_fmod(x, y);
             double libc_res = fmod(x, y);
             if (!ml_isnan(ml_res) && !ml_isnan(libc_res)) {
-                /* RELATIVE tolerance: scales with magnitude of result */
-                double tol = ml_fabs(libc_res) * 1e-13 + 1e-15;
-                CHECK_NEAR(ml_res, libc_res, tol, "fmod equivalence");
-            }
+    double tol = ml_fabs(libc_res) * 1e-13 + 1e-15;
+
+    if (ml_fabs(ml_res - libc_res) < tol) {
+        passed++;
+    } else {
+        failed++;
+        printf("FAIL: fmod equivalence | func=fmod x=%.17g y=%.17g got=%.17g expected=%.17g diff=%.17g\n",
+               x, y, ml_res, libc_res, ml_fabs(ml_res - libc_res));
+    }
+}
         }
 
         if (!ml_isnan(x) && !ml_isinf(x) && x != 0.0 && !ml_is_subnormal(x)) {
@@ -123,8 +129,19 @@ void test_algebraic_invariants() {
     }
 }
 
-int main() {
-    srand((unsigned int)time(NULL));
+int main(int argc, char **argv) {
+    unsigned int seed;
+
+    if (argc > 1) {
+        seed = (unsigned int)strtoul(argv[1], NULL, 10);
+    } else {
+        const char *env = getenv("MATHLIB_FUZZ_SEED");
+        if (env && *env) seed = (unsigned int)strtoul(env, NULL, 10);
+        else seed = (unsigned int)time(NULL);
+    }
+
+    srand(seed);
+    printf("MATHLIB_FUZZ_SEED=%u\n", seed);
     printf("=========================================================\n");
     printf("   MATHLIB v11S: THE ULTIMATE FUZZER (ASan + UBSan)\n");
     printf("=========================================================\n");

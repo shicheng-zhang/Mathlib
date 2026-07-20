@@ -1,4 +1,6 @@
 # Math Diary: Signal Processing (Cooley-Tukey FFT & Twiddle Refresh)
+
+> **v11S Closure Status:** FFT is power-of-two only. Unsupported lengths are safe no-ops. Twiddle refresh is used for numerical stability.
 > **Orchestrator's Mission:** You cannot ship what you cannot explain.
 > Use this document to reverse-engineer the AI-generated code in `src/fft.c`.
 > Consult the Red Team (Gemini/ChatGPT) or Green Team (Copilot) to fill in the blanks.

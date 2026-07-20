@@ -2,6 +2,7 @@
 #define MATHLIB_ML_ODE_H
 
 #include "ml_compiler.h"
+#include "ml_core.h"
 
 typedef double (*ml_ode_func_t)(double t, double y);
 

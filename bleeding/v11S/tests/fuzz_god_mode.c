@@ -369,9 +369,19 @@ void test_fixed_point_cordic() {
     }
 }
 
-int main() {
-    unsigned int seed = (unsigned int)time(NULL);
+int main(int argc, char **argv) {
+    unsigned int seed;
+
+    if (argc > 1) {
+        seed = (unsigned int)strtoul(argv[1], NULL, 10);
+    } else {
+        const char *env = getenv("MATHLIB_FUZZ_SEED");
+        if (env && *env) seed = (unsigned int)strtoul(env, NULL, 10);
+        else seed = (unsigned int)time(NULL);
+    }
+
     srand(seed);
+    printf("MATHLIB_FUZZ_SEED=%u\n", seed);
     printf("Fuzz Seed: %u\n", seed);
     printf("=========================================================\n");
     printf("   MATHLIB v1.0: GOD-MODE DYNAMIC FUZZING GAUNTLET\n");

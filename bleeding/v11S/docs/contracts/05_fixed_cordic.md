@@ -1,4 +1,6 @@
 # Math Diary: Embedded Math (Q16.16 CORDIC Shift-and-Add)
+
+> **v11S Closure Status:** Fixed-point CORDIC is approximate, uses defined shift behavior, saturation guards, and bounded range reduction.
 > **Orchestrator's Mission:** You cannot ship what you cannot explain.
 > Use this document to reverse-engineer the AI-generated code in `src/fixed_point.c & include/mathlib/internal/cordic.h`.
 > Consult the Red Team (Gemini/ChatGPT) or Green Team (Copilot) to fill in the blanks.

@@ -1,4 +1,6 @@
 # Math Diary: Exponentials & Logarithms (Horner's & Cody-Waite)
+
+> **v11S Closure Status:** Exp/log use Cody-Waite reduction and Horner evaluation. Pow, hyperbolics, and special-case behavior were hardened during v11S closure.
 > **Orchestrator's Mission:** You cannot ship what you cannot explain.
 > Use this document to reverse-engineer the AI-generated code in `src/exp_log.c`.
 > Consult the Red Team (Gemini/ChatGPT) or Green Team (Copilot) to fill in the blanks.

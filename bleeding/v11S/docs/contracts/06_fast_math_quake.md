@@ -1,4 +1,6 @@
 # Math Diary: Fast Math (Quake III Inverse Sqrt & Integer-Float Isomorphism)
+
+> **v11S Closure Status:** Fast math functions are approximate, domain-guarded, and hardened against UB, but are not correctly-rounded libm replacements.
 > **Orchestrator's Mission:** You cannot ship what you cannot explain.
 > Use this document to reverse-engineer the AI-generated code in `include/mathlib/fast_math.h`.
 > Consult the Red Team (Gemini/ChatGPT) or Green Team (Copilot) to fill in the blanks.

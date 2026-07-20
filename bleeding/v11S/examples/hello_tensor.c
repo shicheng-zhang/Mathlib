@@ -5,7 +5,7 @@
 #include "ml_types.h"
 
 int main() {
-    printf("=== MathLib v11A1: Zero-Alloc Tensor Solver ===\n\n");
+    printf("=== MathLib v11S: Zero-Alloc Tensor Solver ===\n\n");
 
     // 1. Define a client-managed scratchpad (No malloc!)
     char scratchpad[4096];

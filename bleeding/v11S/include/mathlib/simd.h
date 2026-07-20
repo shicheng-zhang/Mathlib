@@ -2,6 +2,7 @@
 #define LIBMATHC_SIMD_H
 
 #include <stdint.h>
+#include "ml_core.h"
 
 #if defined(__AVX__) || defined(__AVX2__)
 // GCC vector extension for 4-wide double precision (AVX)
@@ -20,10 +21,7 @@ static inline double ml_vec4_dot(ml_vec4 a, ml_vec4 b) {
 }
 
 static inline double ml_vec4_mag(ml_vec4 a) {
-    double dot = ml_vec4_dot(a, a);
-    double res;
-    __asm__ ("sqrtsd %1, %0" : "=x" (res) : "x" (dot));
-    return res;
+    return ml_sqrt(ml_vec4_dot(a, a));
 }
 
 // --- Raw AVX Intrinsics (Path 3) ---
@@ -61,7 +59,7 @@ static inline double ml_vec4_dot(ml_vec4 a, ml_vec4 b) {
     return a.d[0]*b.d[0] + a.d[1]*b.d[1] + a.d[2]*b.d[2] + a.d[3]*b.d[3];
 }
 static inline double ml_vec4_mag(ml_vec4 a) {
-    return __builtin_sqrt(ml_vec4_dot(a, a));
+    return ml_sqrt(ml_vec4_dot(a, a));
 }
 #endif
 

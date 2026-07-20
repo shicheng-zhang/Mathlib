@@ -55,6 +55,8 @@ static void ml_matmul_avx2(const double* ML_RESTRICT A, const double* ML_RESTRIC
  * No function pointers. No lazy init. Zero data races.
  * ========================================================================== */
 ML_API void ml_matmul(const double* ML_RESTRICT A, const double* ML_RESTRICT B, double* ML_RESTRICT C, int N) {
+    if (ML_UNLIKELY(A == NULL || B == NULL || C == NULL || N <= 0)) return;
+
 #if ML_COMPILE_TIME_AVX2
     ml_matmul_avx2(A, B, C, N);
 #else

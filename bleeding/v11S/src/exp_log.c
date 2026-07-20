@@ -134,10 +134,16 @@ ML_API double ml_pow(double x, double y) {
     }
 
     if (x == 0.0) {
+        /*
+         * x < 0.0 is false for -0.0, so use ml_signbit()
+         * to correctly preserve signed-zero semantics.
+         */
+        int x_neg = ml_signbit(x);
+
         if (y > 0.0) {
-            return (x < 0.0 && y_is_int && odd) ? -0.0 : 0.0;
+            return (x_neg && y_is_int && odd) ? -0.0 : 0.0;
         } else {
-            return (x < 0.0 && y_is_int && odd) ? -ml_make_inf(0) : ml_make_inf(0);
+            return (x_neg && y_is_int && odd) ? -ml_make_inf(0) : ml_make_inf(0);
         }
     }
 
@@ -227,11 +233,26 @@ ML_API double ml_asinh(double x) {
     if (ml_isnan(x) || ml_isinf(x)) return x;
 
     double ax = ml_fabs(x);
+
     if (ax == 0.0) return x;
     if (ax < 1e-4) return x;
 
-    double r = ml_log(ax + ml_hypot_internal(ax, 1.0));
-    return (x < 0.0) ? -r : r;
+    double r;
+
+    /*
+     * For huge finite inputs, ax + hypot(ax, 1) can overflow to +Inf
+     * even though asinh(x) itself is finite.
+     *
+     * Use the asymptotic form:
+     *   asinh(x) ~= log(2|x|) = log|x| + log(2)
+     */
+    if (ax > 1e150) {
+        r = ml_log(ax) + ML_LN2;
+    } else {
+        r = ml_log(ax + ml_hypot_internal(ax, 1.0));
+    }
+
+    return ml_copysign(r, x);
 }
 
 ML_API double ml_acosh(double x) {

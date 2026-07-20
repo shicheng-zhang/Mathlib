@@ -26,7 +26,7 @@ static inline void ml_test_init(ml_test_ctx_t* ctx, const char* name) {
 
 #define ASSERT_NEAR(ctx, a, b, eps, msg) do { \
     double _a = (double)(a); double _b = (double)(b); \
-    if (ml_fabs(_a - _b) < (eps)) { (ctx)->passed++; } \
+    if (ml_fabs(_a - _b) <= (eps)) { (ctx)->passed++; } \
     else { (ctx)->failed++; printf("  [FAIL] %s (Line %d) got %.17g expected %.17g diff %.17g\n", msg, __LINE__, _a, _b, ml_fabs(_a - _b)); } \
 } while(0)
 
