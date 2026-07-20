@@ -1,6 +1,13 @@
 #ifndef LIBMATHC_PAYNE_HANEK_H
 #define LIBMATHC_PAYNE_HANEK_H
 
+/*
+ * HISTORICAL FILENAME NOTE:
+ * This file currently implements a bounded high-precision Cody-Waite
+ * reduction with an explicit domain clamp. It is NOT a full Payne-Hanek
+ * implementation for arbitrary huge arguments.
+ */
+
 #include <string.h>
 #include "ml_core.h"
 #include "internal/error_free.h"
@@ -37,7 +44,8 @@ static inline int ml_rem_pio2(double x, double *y) {
     // Estimate n = round(x / (pi/2))
     double fn = ml_round(x * 0.63661977236758134308); // 2/pi
     long long n_ll = (long long)fn;
-    int n = (int)(n_ll & 3);
+    int n = (int)(n_ll % 4);
+    if (n < 0) n += 4;
 
     // EXACT CODY-WAITE REDUCTION via Hardware FMA
     // Bypasses Dekker's 27-bit limitation by using infinite-precision intermediate FMA

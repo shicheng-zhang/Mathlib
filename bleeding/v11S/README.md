@@ -29,16 +29,16 @@ MathLib avoids overclaiming "strict IEEE-754" across the board. Instead, we guar
 | Module | Guarantee | Implementation |
 | :--- | :--- | :--- |
 | **Bitwise Parsers** (`ml_isnan`, `ml_fabs`) | **100% IEEE-754 Exact** | Pure 64-bit integer bitmasking. Zero branching. |
-| **Transcendentals** (`ml_sin`, `ml_exp`) | **≤ 5 ULP (Software Bound)** | 19th-degree Minimax polynomial + Cody-Waite reduction. |
+| **Transcendentals** (`ml_sin`, `ml_exp`) | **≤ 5 ULP (Software Bound)** | 19th-degree Maclaurin polynomial + bounded Cody-Waite reduction. |
 | **Fast Math** (`ml_fast_rsqrt`) | **< 10^-4 Relative Error** | Quake III integer-cast bit-hack + 2x Newton-Raphson. |
 | **Linear Algebra** (`ml_solve`) | **Zero Heap Allocation** | Client-provided scratchpad bump-allocator (`ml_workspace_t`). |
 
 ## 🏗️ Architecture & Profiles
 MathLib uses compile-time hardware profiling to route math functions to the optimal implementation:
 
-*   **`SCIENTIFIC` (Default):** Strict precision, 19th-degree polynomials, Payne-Hanek range reduction.
+*   **`SCIENTIFIC` (Default):** Strict precision, 19th-degree Maclaurin polynomials, bounded high-precision Cody-Waite range reduction.
 *   **`GRAPHICS`:** Blazing fast AVX2 SIMD batch processing and Quake III `rsqrt` bit-hacks (Compile-time dispatch).
-*   **`EMBEDDED`:** True Q16.16 Fixed-Point CORDIC. Zero floats, zero FPU dependencies.
+*   **`EMBEDDED`:** Fixed-point Q16.16 CORDIC kernel selected for trig; public API still uses double at the boundary.
 
 ## 🧪 Testing & Invariant Fuzzing
 MathLib ships with a deterministic smoke test and two dedicated property-based invariant fuzzers.

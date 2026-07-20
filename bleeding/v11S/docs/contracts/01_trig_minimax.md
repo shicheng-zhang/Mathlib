@@ -1,4 +1,6 @@
-# Math Diary: Transcendentals (Minimax & Payne-Hanek)
+# Math Diary: Transcendentals (Maclaurin & Bounded Cody-Waite)
+
+> **v11S Closure Note:** The current implementation uses a 19th-degree Maclaurin polynomial and bounded high-precision Cody-Waite reduction with a domain clamp. It is not a true Remez minimax polynomial and not a full Payne-Hanek reduction.
 > **Orchestrator's Mission:** You cannot ship what you cannot explain.
 > Use this document to reverse-engineer the AI-generated code in `src/trig.c & include/mathlib/internal/minimax.h`.
 > Consult the Red Team (Gemini/ChatGPT) or Green Team (Copilot) to fill in the blanks.

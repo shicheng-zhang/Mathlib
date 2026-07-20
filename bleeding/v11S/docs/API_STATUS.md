@@ -6,7 +6,7 @@ This document defines the permanent public interface for MathLib v1.1.
 | Module / Header | Status | Notes |
 | :--- | :--- | :--- |
 | `ml_core.h` | **STABLE** | Bitwise IEEE-754, pure C fmod/round, hardware sqrt. |
-| `ml_trig.h` | **STABLE** | Horner's Minimax, Payne-Hanek, Polymorphic API (`_scientific`, `_fixed`). |
+| `ml_trig.h` | **STABLE** | Horner evaluation, bounded Cody-Waite reduction, Maclaurin kernel. |
 | `ml_exp_log.h` | **STABLE** | Horner's Method, Cody-Waite split, hyperbolic functions. |
 | `ml_linalg.h` | **EXPERIMENTAL** | Zero-alloc LU decomposition. API may shift in v1.2. |
 | `ml_tensor.h` | **EXPERIMENTAL** | Workspace bump allocator. API may shift in v1.2. |

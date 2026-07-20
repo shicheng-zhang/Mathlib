@@ -24,7 +24,7 @@ static const double maclaurin_sin_coeffs[] = {
 static inline double ml_minimax_sin_raw(double x) {
     double x2 = x * x;
     double result = maclaurin_sin_coeffs[9];
-    for (int i = 8; i >= 0; i--) result = __builtin_fma(result, x2, maclaurin_sin_coeffs[i]);
+    for (int i = 8; i >= 0; i--) result = ML_FMA(result, x2, maclaurin_sin_coeffs[i]);
     return x * result;
 }
 
@@ -45,7 +45,7 @@ static const double maclaurin_cos_coeffs[] = {
 static inline double ml_minimax_cos_raw(double x) {
     double x2 = x * x;
     double result = maclaurin_cos_coeffs[9];
-    for (int i = 8; i >= 0; i--) result = __builtin_fma(result, x2, maclaurin_cos_coeffs[i]);
+    for (int i = 8; i >= 0; i--) result = ML_FMA(result, x2, maclaurin_cos_coeffs[i]);
     return result;
 }
 

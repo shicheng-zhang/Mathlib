@@ -32,9 +32,30 @@ typedef struct {
 
 /* Initialize workspace */
 ML_INLINE void ml_workspace_init(ml_workspace_t *ws, void *buffer, size_t size) {
-    if (ML_UNLIKELY(!ws || !buffer || size == 0)) return;
-    ws->base = (uint8_t *)buffer;
-    ws->capacity = size;
+    if (ML_UNLIKELY(!ws)) return;
+
+    if (ML_UNLIKELY(!buffer || size == 0)) {
+        ws->base = NULL;
+        ws->capacity = 0;
+        ws->offset = 0;
+        ws->magic_canary = 0;
+        return;
+    }
+
+    uintptr_t raw = (uintptr_t)buffer;
+    uintptr_t aligned = (raw + (uintptr_t)31) & ~(uintptr_t)31;
+    size_t pad = (size_t)(aligned - raw);
+
+    if (ML_UNLIKELY(pad >= size)) {
+        ws->base = NULL;
+        ws->capacity = 0;
+        ws->offset = 0;
+        ws->magic_canary = 0;
+        return;
+    }
+
+    ws->base = (uint8_t *)aligned;
+    ws->capacity = size - pad;
     ws->offset = 0;
     ws->magic_canary = ML_WORKSPACE_CANARY;
 }
@@ -52,7 +73,8 @@ ML_INLINE void *ml_workspace_alloc(ml_workspace_t *ws, size_t bytes) {
 
     /* SAFETY: Always check for overflow and exhaustion */
     if (ML_UNLIKELY(aligned < bytes)) return NULL; /* Overflow */
-    if (ML_UNLIKELY(ws->offset + aligned > ws->capacity)) return NULL; /* Exhausted */
+    if (ML_UNLIKELY(ws->offset > ws->capacity)) return NULL; /* Corruption */
+    if (ML_UNLIKELY(aligned > ws->capacity - ws->offset)) return NULL; /* Exhausted */
 
     void *ptr = ws->base + ws->offset;
     ws->offset += aligned;

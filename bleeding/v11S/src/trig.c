@@ -41,6 +41,9 @@ ML_API double ml_tan(double x) {
 }
 
 ML_API double ml_atan(double x) {
+    if (ml_isnan(x)) return x;
+    if (ml_isinf(x)) return ml_copysign(ML_PI / 2.0, x);
+
     if (x > 1.0) return (ML_PI / 2.0) - ml_atan(1.0 / x);
     if (x < -1.0) return -(ML_PI / 2.0) - ml_atan(1.0 / x);
     if (x > 0.5) return (ML_PI / 4.0) + ml_atan((x - 1.0) / (x + 1.0));

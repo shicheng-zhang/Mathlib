@@ -16,7 +16,7 @@ Any future contributions must adhere to these policies.
 * **No Global State:** There are no global variables, no hidden caches, and no thread-local storage. MathLib is inherently thread-safe.
 
 ## 3. Determinism Policy
-* **Bit-Identical Across Profiles:** The `SCIENTIFIC` profile guarantees deterministic output regardless of the underlying SIMD execution path (AVX2 vs Scalar fallback).
+* **Deterministic Within Build/Configuration:** The `SCIENTIFIC` profile guarantees deterministic output for a given build/configuration. Different SIMD/FMA paths may differ by bounded ULP unless explicitly validated.
 * **No Fast-Math Compiler Flags:** The build system strictly enforces `-fno-fast-math` and `-ffp-contract=off` to prevent the compiler from reordering IEEE-754 operations.
 
 ## 4. Error Handling Policy
@@ -24,5 +24,5 @@ Any future contributions must adhere to these policies.
 * **Complex Operations:** Returns `ml_status_t` enum (e.g., `ML_ERR_SINGULAR`, `ML_ERR_WORKSPACE`) to explicitly signal structural failures.
 
 ## 5. Precision Policy
-* **Software Bounds:** Pure C99 software implementations (without hardware FMA) guarantee `<= 5 ULP` deviation from ground-truth `glibc libm`.
+* **Software Bounds:** Validated core transcendentals target `<= 5 ULP` deviation from ground-truth `glibc libm` under the documented domain. Exact bit-identity across all execution paths is not claimed.
 * **Exact Operations:** Bitwise parsers (`ml_isnan`, `ml_fabs`) and Error-Free Transformations (`ml_two_sum`) are 100% IEEE-754 exact with zero branching.

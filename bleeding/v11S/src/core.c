@@ -68,6 +68,7 @@ ML_API double ml_frexp_pure(double x, int *exp) {
 }
 
 ML_API double ml_fmod(double x, double y) {
+    /* v11S CLOSURE HOTFIX: exact fmod for all finite nonzero inputs */
     if (ml_isnan(x) || ml_isnan(y) || ml_isinf(x)) return ml_make_nan();
     if (ml_isinf(y)) return x;
     if (y == 0.0) return ml_make_nan();
@@ -78,26 +79,22 @@ ML_API double ml_fmod(double x, double y) {
     if (ax < ay) return x;
     if (ax == ay) return ml_copysign(0.0, x);
 
-    /* Safe path: quotient fits in 53-bit integer space. */
-    if (ax < ay * 4503599627370496.0) {
-        long long q = (long long)(ax / ay);
-        double rem = ax - (double)q * ay;
-
-        if (rem < 0.0) rem += ay;
-        if (rem >= ay) rem -= ay;
-
-        return ml_copysign(rem, x);
-    }
-
     ml_fp_parts_t px = ml_fp_decompose(ax);
     ml_fp_parts_t py = ml_fp_decompose(ay);
 
     if (px.sig == 0) return ml_copysign(0.0, x);
     if (py.sig == 0) return ml_make_nan();
 
-    /* If exponent difference is negative, quotient is small.
-       This should have been caught by the safe path, but handle anyway. */
-    if (px.exp < py.exp) {
+    int d = px.exp - py.exp;
+
+    /*
+     * Defensive fallback.
+     *
+     * For finite nonzero values with |x| >= |y|, the exact significand model
+     * should give d >= 0. If this ever triggers, the quotient is small enough
+     * that this fallback remains safe.
+     */
+    if (d < 0) {
         long long q = (long long)(ax / ay);
         double rem = ax - (double)q * ay;
 
@@ -107,12 +104,13 @@ ML_API double ml_fmod(double x, double y) {
         return ml_copysign(rem, x);
     }
 
-    int d = px.exp - py.exp;
     uint64_t rem = px.sig % py.sig;
+    if (rem == 0) return ml_copysign(0.0, x);
 
     for (int i = 0; i < d; i++) {
         rem <<= 1;
         if (rem >= py.sig) rem -= py.sig;
+        if (rem == 0) break;
     }
 
     return ml_fp_compose(rem, py.exp, ml_signbit(x));
