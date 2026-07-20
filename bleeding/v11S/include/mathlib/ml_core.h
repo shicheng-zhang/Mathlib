@@ -32,29 +32,20 @@ ML_INLINE double ml_copysign(double x, double y) {
     bx = (bx & 0x7FFFFFFFFFFFFFFFULL) | (by & 0x8000000000000000ULL);
     memcpy(&x, &bx, sizeof(double)); return x;
 }
-ML_INLINE double ml_ldexp_pure(double x, int exp) {
-    uint64_t bits; memcpy(&bits, &x, sizeof(uint64_t));
-    int64_t current_exp = (int64_t)((bits >> 52) & 0x7FF);
-    int64_t new_exp = current_exp + exp;
-    if (new_exp <= 0) return 0.0; /* Flush-To-Zero (FTZ) for performance; does not generate subnormals. */
-    if (new_exp >= 0x7FF) return ml_make_inf(x < 0);
-    bits = (bits & 0x800FFFFFFFFFFFFFULL) | ((uint64_t)new_exp << 52);
-    memcpy(&x, &bits, sizeof(double)); return x;
+ML_INLINE int ml_signbit(double x) {
+    uint64_t bits;
+    memcpy(&bits, &x, sizeof(uint64_t));
+    return (int)(bits >> 63);
 }
-ML_INLINE double ml_frexp_pure(double x, int *exp) {
-    uint64_t bits; memcpy(&bits, &x, sizeof(uint64_t));
-    uint64_t exp_bits = (bits >> 52) & 0x7FF;
-    if (exp_bits == 0) {
-        if (x == 0.0) { *exp = 0; return x; }
-        double norm = x * 4503599627370496.0; memcpy(&bits, &norm, sizeof(uint64_t));
-        exp_bits = (bits >> 52) & 0x7FF; *exp = (int)exp_bits - 1022 - 52;
-        bits = (bits & 0x800FFFFFFFFFFFFFULL) | 0x3FE0000000000000ULL;
-        memcpy(&x, &bits, sizeof(double)); return x;
-    }
-    *exp = (int)exp_bits - 1022;
-    bits = (bits & 0x800FFFFFFFFFFFFFULL) | 0x3FE0000000000000ULL;
-    memcpy(&x, &bits, sizeof(double)); return x;
+
+ML_INLINE int ml_isfinite(double x) {
+    uint64_t bits;
+    memcpy(&bits, &x, sizeof(uint64_t));
+    return ((bits & 0x7FF0000000000000ULL) != 0x7FF0000000000000ULL);
 }
+
+ML_API double ml_ldexp_pure(double x, int exp);
+ML_API double ml_frexp_pure(double x, int *exp);
 
 ML_API double ml_sqrt(double x);
 ML_API double ml_fmod(double x, double y);

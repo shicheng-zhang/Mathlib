@@ -1,9 +1,11 @@
 #include "ml_compiler.h"
 #include "ml_core.h"
+#include "internal/ieee_exact.h"
 
 ML_API double ml_sqrt(double x) {
     if (x < 0.0) return ml_make_nan();
-    if (x == 0.0) return 0.0;
+    if (x == 0.0) return x;
+
 #if defined(__x86_64__) || defined(__i386__)
     double res;
     __asm__ ("sqrtsd %1, %0" : "=x" (res) : "x" (x));
@@ -13,57 +15,117 @@ ML_API double ml_sqrt(double x) {
 #endif
 }
 
-/* FIX: Eradicated the fragile 9.22e18 magic number and long long cast UB.
- * This implementation uses exponent-aligned subtraction for pathological
- * quotients, guaranteeing zero Undefined Behavior and exact IEEE-754 compliance. */
+ML_API double ml_ldexp_pure(double x, int exp) {
+    ml_fp_parts_t p = ml_fp_decompose(x);
+
+    if (p.kind == ML_FP_ZERO || p.kind == ML_FP_INF || p.kind == ML_FP_NAN) {
+        return x;
+    }
+
+    long long new_exp = (long long)p.exp + (long long)exp;
+
+    if (new_exp > 971) {
+        return ml_make_inf(p.sign);
+    }
+
+    if (new_exp < -1200) {
+        uint64_t bits = p.sign ? 0x8000000000000000ULL : 0ULL;
+        double d;
+        memcpy(&d, &bits, sizeof(double));
+        return d;
+    }
+
+    return ml_fp_compose(p.sig, (int)new_exp, p.sign);
+}
+
+ML_API double ml_frexp_pure(double x, int *exp) {
+    if (!exp) return ml_make_nan();
+
+    ml_fp_parts_t p = ml_fp_decompose(x);
+
+    if (p.kind == ML_FP_ZERO) {
+        *exp = 0;
+        return x;
+    }
+
+    if (p.kind == ML_FP_INF || p.kind == ML_FP_NAN) {
+        *exp = 0;
+        return x;
+    }
+
+    uint64_t sig = p.sig;
+    int e = p.exp;
+
+    while (sig < (1ULL << 52)) {
+        sig <<= 1;
+        e--;
+    }
+
+    double m = (double)sig / 9007199254740992.0; /* 2^53 */
+    *exp = e + 53;
+
+    return p.sign ? -m : m;
+}
+
 ML_API double ml_fmod(double x, double y) {
     if (ml_isnan(x) || ml_isnan(y) || ml_isinf(x)) return ml_make_nan();
     if (ml_isinf(y)) return x;
     if (y == 0.0) return ml_make_nan();
 
-    double abs_x = ml_fabs(x);
-    double abs_y = ml_fabs(y);
+    double ax = ml_fabs(x);
+    double ay = ml_fabs(y);
 
-    if (abs_x < abs_y) return x;
+    if (ax < ay) return x;
+    if (ax == ay) return ml_copysign(0.0, x);
 
-    /* Safe path: quotient fits in 53-bit integer (exact in double precision) */
-    if (abs_x < abs_y * 4503599627370496.0) { /* 2^52 */
-        long long q = (long long)(abs_x / abs_y);
-        double rem = abs_x - (double)q * abs_y;
-        if (rem < 0.0) rem += abs_y; /* Correct rounding drift */
-        if (rem >= abs_y) rem -= abs_y; /* Correct rounding drift */
+    /* Safe path: quotient fits in 53-bit integer space. */
+    if (ax < ay * 4503599627370496.0) {
+        long long q = (long long)(ax / ay);
+        double rem = ax - (double)q * ay;
+
+        if (rem < 0.0) rem += ay;
+        if (rem >= ay) rem -= ay;
+
         return ml_copysign(rem, x);
     }
 
-    /* Pathological path: massive quotient.
-     * Removed the 'shift > 52' cap which caused infinite loops when
-     * the chunk was too small to affect abs_x due to precision absorption. */
-    int exp_x, exp_y;
-    ml_frexp_pure(abs_x, &exp_x);
-    ml_frexp_pure(abs_y, &exp_y);
+    ml_fp_parts_t px = ml_fp_decompose(ax);
+    ml_fp_parts_t py = ml_fp_decompose(ay);
 
-    while (exp_x >= exp_y) {
-        int shift = exp_x - exp_y;
-        double chunk = ml_ldexp_pure(abs_y, shift);
+    if (px.sig == 0) return ml_copysign(0.0, x);
+    if (py.sig == 0) return ml_make_nan();
 
-        if (abs_x >= chunk) {
-            abs_x -= chunk;
-        } else {
-            /* Shift was too big due to mantissa differences, reduce shift */
-            chunk = ml_ldexp_pure(abs_y, shift - 1);
-            if (abs_x >= chunk) abs_x -= chunk;
-        }
+    /* If exponent difference is negative, quotient is small.
+       This should have been caught by the safe path, but handle anyway. */
+    if (px.exp < py.exp) {
+        long long q = (long long)(ax / ay);
+        double rem = ax - (double)q * ay;
 
-        if (abs_x == 0.0) break;
-        ml_frexp_pure(abs_x, &exp_x);
+        if (rem < 0.0) rem += ay;
+        if (rem >= ay) rem -= ay;
+
+        return ml_copysign(rem, x);
     }
 
-    return ml_copysign(abs_x, x);
+    int d = px.exp - py.exp;
+    uint64_t rem = px.sig % py.sig;
+
+    for (int i = 0; i < d; i++) {
+        rem <<= 1;
+        if (rem >= py.sig) rem -= py.sig;
+    }
+
+    return ml_fp_compose(rem, py.exp, ml_signbit(x));
 }
 
 ML_API double ml_round(double x) {
     if (ml_isnan(x) || ml_isinf(x)) return x;
-    if (x > 4503599627370496.0) return x; /* 2^52: Exact IEEE-754 integer limit */
+    if (x == 0.0) return x;
+
+    if (x > 4503599627370496.0) return x;
     if (x < -4503599627370496.0) return x;
-    return (x >= 0.0) ? (double)(long long)(x + 0.5) : (double)(long long)(x - 0.5);
+
+    return (x >= 0.0)
+        ? (double)(long long)(x + 0.5)
+        : (double)(long long)(x - 0.5);
 }
