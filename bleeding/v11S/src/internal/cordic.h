@@ -16,13 +16,44 @@ static const double cordic_atan[] = {
 #define CORDIC_GAIN 0.607252935008881
 
 static inline void ml_cordic_sincos(double theta, double *sin_out, double *cos_out) {
-    // 1. Range reduction to [-pi, pi]
+    /* MATHLIB_CLOSURE_P2_P0_5_CORDIC_NONFINITE_GUARD */
+    if (ML_UNLIKELY(sin_out == NULL || cos_out == NULL)) {
+        return;
+    }
+
+    /*
+     * Non-finite inputs must propagate as NaN.
+     *
+     * The old code allowed NaN to fall through the CORDIC iteration,
+     * because comparisons against NaN are false, producing finite-looking
+     * garbage instead of NaN.
+     */
+    if (ml_isnan(theta) || ml_isinf(theta)) {
+        *sin_out = ml_make_nan();
+        *cos_out = ml_make_nan();
+        return;
+    }
+
+    /* Range reduction to [-pi, pi] */
     theta = ml_fmod(theta, 2.0 * ML_PI);
+
+    /*
+     * Defensive guard:
+     * finite input should not produce non-finite reduction, but if it does,
+     * fail loudly as NaN instead of casting or iterating on garbage.
+     */
+    if (ml_isnan(theta) || ml_isinf(theta)) {
+        *sin_out = ml_make_nan();
+        *cos_out = ml_make_nan();
+        return;
+    }
+
     if (theta > ML_PI) theta -= 2.0 * ML_PI;
     if (theta < -ML_PI) theta += 2.0 * ML_PI;
 
-    // 2. Quadrant Mapping: CORDIC only converges in [-pi/2, pi/2]
+    /* Quadrant mapping: CORDIC only converges in [-pi/2, pi/2] */
     int negate_cos = 0;
+
     if (theta > ML_PI / 2.0) {
         theta = ML_PI - theta;
         negate_cos = 1;
@@ -37,6 +68,7 @@ static inline void ml_cordic_sincos(double theta, double *sin_out, double *cos_o
 
     for (int i = 0; i < 24; i++) {
         double x_new, y_new;
+
         if (z >= 0) {
             x_new = x - (y / (double)(1LL << i));
             y_new = y + (x / (double)(1LL << i));
@@ -46,14 +78,15 @@ static inline void ml_cordic_sincos(double theta, double *sin_out, double *cos_o
             y_new = y - (x / (double)(1LL << i));
             z += cordic_atan[i];
         }
+
         x = x_new;
         y = y_new;
     }
 
-    // 3. Apply Quadrant Sign Correction
     if (negate_cos) x = -x;
 
     *cos_out = x;
     *sin_out = y;
 }
+
 #endif

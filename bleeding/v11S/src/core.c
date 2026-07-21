@@ -16,26 +16,54 @@ ML_API double ml_sqrt(double x) {
 }
 
 ML_API double ml_ldexp_pure(double x, int exp) {
+    /* MATHLIB_REDP2_P0_1_LDEXP_SUBNORMAL_OVERFLOW */
     ml_fp_parts_t p = ml_fp_decompose(x);
 
     if (p.kind == ML_FP_ZERO || p.kind == ML_FP_INF || p.kind == ML_FP_NAN) {
         return x;
     }
 
-    long long new_exp = (long long)p.exp + (long long)exp;
+    long long e = (long long)p.exp + (long long)exp;
+    uint64_t sig = p.sig;
 
-    if (new_exp > 971) {
+    if (sig == 0) {
+        return ml_copysign(0.0, x);
+    }
+
+    /*
+     * Normalize subnormal significands BEFORE applying overflow bounds.
+     *
+     * The old code applied the normal-number overflow bound (e > 971)
+     * directly to subnormal significands, causing false overflow for
+     * small sig + large positive exponent.
+     *
+     * Example:
+     *   smallest subnormal = 2^-1074
+     *   ldexp(smallest subnormal, 2046) = 2^972, which is finite.
+     *
+     * The old path saw:
+     *   new_exp = -1074 + 2046 = 972
+     *   972 > 971 -> infinity
+     *
+     * That was incorrect.
+     */
+    while (sig < (1ULL << 52) && e > -2098) {
+        sig <<= 1;
+        e--;
+    }
+
+    if (e > 971) {
         return ml_make_inf(p.sign);
     }
 
-    if (new_exp < -1200) {
+    if (e < -2098) {
         uint64_t bits = p.sign ? 0x8000000000000000ULL : 0ULL;
         double d;
         memcpy(&d, &bits, sizeof(double));
         return d;
     }
 
-    return ml_fp_compose(p.sig, (int)new_exp, p.sign);
+    return ml_fp_compose(sig, (int)e, p.sign);
 }
 
 ML_API double ml_frexp_pure(double x, int *exp) {
@@ -120,13 +148,49 @@ ML_API double ml_fmod(double x, double y) {
 }
 
 ML_API double ml_round(double x) {
+    /* MATHLIB_REDP2_P0_2_ROUND_CORRECT */
     if (ml_isnan(x) || ml_isinf(x)) return x;
     if (x == 0.0) return x;
 
-    if (x > 4503599627370496.0) return x;
-    if (x < -4503599627370496.0) return x;
+    int neg = ml_signbit(x);
+    ml_fp_parts_t p = ml_fp_decompose(neg ? -x : x);
 
-    return (x >= 0.0)
-        ? (double)(long long)(x + 0.5)
-        : (double)(long long)(x - 0.5);
+    if (p.kind == ML_FP_ZERO) {
+        return x;
+    }
+
+    /*
+     * If exponent >= 0, the value is already an integer.
+     */
+    if (p.exp >= 0) {
+        return x;
+    }
+
+    /*
+     * If |x| < 0.5, round to signed zero.
+     */
+    if (p.exp <= -54) {
+        return neg ? -0.0 : 0.0;
+    }
+
+    unsigned frac_bits = (unsigned)(-p.exp);
+
+    uint64_t int_part = p.sig >> frac_bits;
+    uint64_t frac_mask = (1ULL << frac_bits) - 1ULL;
+    uint64_t frac_part = p.sig & frac_mask;
+    uint64_t half = 1ULL << (frac_bits - 1);
+
+    /*
+     * Round half away from zero.
+     *
+     * This avoids the broken x +/- 0.5 trick, which can misround
+     * values just below halves due to floating-point addition rounding.
+     */
+    if (frac_part >= half) {
+        int_part++;
+    }
+
+    double r = (double)int_part;
+    return neg ? -r : r;
 }
+

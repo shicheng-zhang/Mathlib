@@ -73,6 +73,19 @@ double rand_bounded_double() {
     return ((double)rand() / RAND_MAX * 20.0) - 10.0;
 }
 
+/* MATHLIB_CLOSURE_P2_LOG_EXP_ROUNDTRIP_HELPER */
+static uint64_t ml_fuzz_ulp_distance(double a, double b) {
+    uint64_t ia, ib;
+
+    memcpy(&ia, &a, sizeof(uint64_t));
+    memcpy(&ib, &b, sizeof(uint64_t));
+
+    if (ia >> 63) ia = 0x8000000000000000ULL - ia;
+    if (ib >> 63) ib = 0x8000000000000000ULL - ib;
+
+    return ia > ib ? ia - ib : ib - ia;
+}
+
 void test_ieee754_specials() {
     printf("--- IEEE 754 Special Values Gauntlet ---\n");
     double specials[] = {0.0, -0.0, (ml_make_inf(0)), -(ml_make_inf(0)), (ml_make_nan()), 1.7976931348623157e+308, 2.2250738585072014e-308, 5e-324};
@@ -139,14 +152,34 @@ void test_exp_log_properties() {
             } else { passed++; }
         }
         if (x < 700.0) {
-            double exp_x = ml_exp(x);
-            double log_exp = ml_log(exp_x);
-            if (!(ml_fabs(log_exp - x) < 1e-13)) {
-                failed++; printf("FAIL: log(exp(x)) | x: %.15g | exp(x): %.15g | log(exp(x)): %.15g\n", x, exp_x, log_exp);
-            } else { passed++; }
-        }
+    double exp_x = ml_exp(x);
+    double log_exp = ml_log(exp_x);
+    double diff = ml_fabs(log_exp - x);
+    uint64_t ulps = ml_fuzz_ulp_distance(log_exp, x);
 
-        double prod = x * y;
+    /*
+     * MATHLIB_CLOSURE_P2_LOG_EXP_ROUNDTRIP_TOLERANCE
+     *
+     * The old absolute tolerance 1e-13 is smaller than one double ULP
+     * for x in [512, 1024), where one ULP is approximately 1.14e-13.
+     *
+     * Therefore a roundtrip error of one ULP could fail the old test
+     * even though the result is numerically sane.
+     *
+     * Accept either:
+     *   - very small absolute error, or
+     *   - <= 8 ULP roundtrip error.
+     */
+    if (ml_isnan(log_exp) || ml_isinf(log_exp) || !(diff <= 1e-13 || ulps <= 8)) {
+        failed++;
+        printf("FAIL: log(exp(x)) | x: %.17g | exp(x): %.17g | log(exp(x)): %.17g | diff: %.17g | ulps: %llu\n",
+               x, exp_x, log_exp, diff, (unsigned long long)ulps);
+    } else {
+        passed++;
+    }
+}
+
+double prod = x * y;
         // Skip subnormals to avoid IEEE-754 hardware rounding errors
         if (x > 2.2250738585072014e-308 && y > 2.2250738585072014e-308 && prod > 2.2250738585072014e-308 && !ml_isinf(prod)) {
             double log_prod = ml_log(prod);
@@ -349,15 +382,43 @@ void test_simd_and_bare_metal() {
 }
 
 void test_fixed_point_cordic() {
+    /* MATHLIB_CLOSURE_P2_P0_5_FUZZ_CORDIC_NONFINITE_GUARD */
     printf("--- Fixed-Point CORDIC vs Double CORDIC (1,000 iterations) ---\n");
+
     for(int i=0; i<1000; i++) {
         double angle = rand_double();
-        // O(1) range reduction to prevent infinite loop on massive inputs
+
+        /*
+         * Do NOT cast NaN or Infinity to integer.
+         *
+         * In C, converting a non-finite floating-point value to an integer
+         * type is undefined behavior.
+         *
+         * Instead, verify that the double CORDIC path correctly returns NaN.
+         */
+        if (!ml_isfinite(angle)) {
+            double d_sin, d_cos;
+            ml_cordic_sincos(angle, &d_sin, &d_cos);
+
+            CHECK(ml_isnan(d_sin) && ml_isnan(d_cos),
+                  "Double CORDIC non-finite input produces NaN");
+
+            continue;
+        }
+
+        /* O(1) range reduction to prevent infinite loop on massive inputs */
         angle = ml_fmod(angle, 2.0 * ML_PI);
+
+        if (!ml_isfinite(angle)) {
+            CHECK(0, "ml_fmod(finite, 2*pi) produced non-finite result");
+            continue;
+        }
+
         if (angle > ML_PI) angle -= 2.0 * ML_PI;
         if (angle < -ML_PI) angle += 2.0 * ML_PI;
 
         ml_q16_16_t fixed_angle = (ml_q16_16_t)(angle * 65536.0);
+
         ml_q16_16_t f_sin, f_cos;
         ml_cordic_sincos_fixed(fixed_angle, &f_sin, &f_cos);
 
@@ -368,6 +429,7 @@ void test_fixed_point_cordic() {
         CHECK_NEAR((double)f_cos / 65536.0, d_cos, 1e-3, "Fixed vs Double CORDIC cos");
     }
 }
+
 
 int main(int argc, char **argv) {
     unsigned int seed;

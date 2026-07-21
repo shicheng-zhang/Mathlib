@@ -231,3 +231,85 @@ v11S is not stable until:
 - Matrix/tensor indexing now uses wide size arithmetic internally.
 - Official verification script now runs edge tests and boundary gauntlet.
 - CI now runs edge tests and deterministic quick fuzz.
+
+<!-- MATHLIB_CLOSURE_P2_P0_1_LOG -->
+## Red Team P2 P0-1
+
+- Fixed `ml_ldexp_pure()` false overflow for subnormal significands.
+- Normalization now occurs before overflow judgment.
+- Added regression suite `tests/test_edge_redteam_p0_1.c`.
+
+<!-- MATHLIB_CLOSURE_P2_P0_2_LOG -->
+## Red Team P2 P0-2
+
+- Replaced `ml_round()` with exact decomposition-based round-half-away-from-zero.
+- Fixed misrounding near half-integers caused by the old `x +/- 0.5` trick.
+- Added regression suite `tests/test_edge_redteam_p0_2.c`.
+
+<!-- MATHLIB_CLOSURE_P2_P0_3_LOG -->
+## Red Team P2 P0-3
+
+- Fixed `ml_exp()` premature overflow threshold.
+- Fixed `ml_exp()` premature underflow threshold.
+- Added regression suite `tests/test_edge_redteam_p0_3.c`.
+
+<!-- MATHLIB_CLOSURE_P2_P0_3_FIX_LOG -->
+## Red Team P2 P0-3 Fix
+
+- Corrected earlier P0-3 marker collision.
+- `ml_exp()` now uses `ML_LOG_DBL_MAX` and `ML_LOG_UNDERFLOW`.
+- Old coarse thresholds `709.78` and `-745.13` are replaced.
+- Regression suite `tests/test_edge_redteam_p0_3.c` remains active.
+
+<!-- MATHLIB_CLOSURE_P2_P0_5_LOG -->
+## Red Team P2 P0-5
+
+- Hardened double CORDIC against NaN / Inf inputs.
+- Hardened `fuzz_god_mode` fixed CORDIC test to avoid casting non-finite doubles to integers.
+- Added regression suite `tests/test_edge_redteam_p0_5.c`.
+
+<!-- MATHLIB_CLOSURE_P2_LOG_EXP_ROUNDTRIP_LOG -->
+## Red Team P2 Log/Exp Roundtrip Fix
+
+- Replaced over-tight `log(exp(x))` fuzzer tolerance with ULP-aware tolerance.
+- Added `ml_fuzz_ulp_distance()` to `fuzz_god_mode.c`.
+- Improved `ml_log()` final reconstruction using `ML_FMA`.
+- Added deterministic regression suite `tests/test_edge_redteam_p2_logexp.c`.
+
+<!-- MATHLIB_CLOSURE_P2_P0_4_LOG -->
+## Red Team P2 P0-4
+
+- Fixed premature `ml_sinh()` overflow threshold.
+- Fixed premature `ml_cosh()` overflow threshold.
+- Hyperbolic overflow boundary now uses `log(DBL_MAX) + log(2)`.
+- Near-overflow evaluation now uses shifted exponential form `exp(x - ln2)`.
+- Added regression suite `tests/test_edge_redteam_p0_4.c`.
+
+<!-- MATHLIB_REDP2_P0_1_LOG -->
+## Red Team P2 P0-1
+
+- Fixed `ml_ldexp_pure()` false overflow for subnormal significands.
+- Normalization now occurs before overflow judgment.
+- Added regression suite `tests/test_edge_redteam_p0_1.c`.
+
+<!-- MATHLIB_REDP2_P0_2_LOG -->
+## Red Team P2 P0-2
+
+- Replaced `ml_round()` with exact decomposition-based round-half-away-from-zero.
+- Fixed misrounding near half-integers caused by the old `x +/- 0.5` trick.
+- Added regression suite `tests/test_edge_redteam_p0_2.c`.
+
+<!-- MATHLIB_REDP2_P1_1_LOG -->
+## Red Team P2 P1-1
+
+- Aligned `ml_simd_batch_rsqrt()` exceptional fallback with scalar `ml_fast_rsqrt()`.
+- Batch fallback now preserves scalar fast-math semantics for zero, negative, inf, NaN, and subnormal inputs.
+- Added regression suite `tests/test_edge_redteam_p1_1.c`.
+
+<!-- MATHLIB_REDP2_P1_1_TEST_TOLERANCE_LOG -->
+## Red Team P2 P1-1 Test Tolerance Fix
+
+- Corrected `tests/test_edge_redteam_p1_1.c` tolerance for the approximate fast rsqrt path.
+- Positive-normal batch rsqrt now uses a fast-math-appropriate relative tolerance.
+- Exceptional-input semantic checks remain strict.
+- No SIMD kernel behavior was changed.

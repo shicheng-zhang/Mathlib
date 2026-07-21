@@ -2,17 +2,50 @@
 #include "ml_exp_log.h"
 #include "internal/hypot.h"
 #include "internal/pow_util.h"
+/* MATHLIB_CLOSURE_P2_P0_4_HYPERBOLIC_LIMITS */
+#ifndef ML_LOG_DBL_MAX
+#define ML_LOG_DBL_MAX 709.782712893384
+#endif
+
+#ifndef ML_LOG_HYP_OVERFLOW
+#define ML_LOG_HYP_OVERFLOW (ML_LOG_DBL_MAX + ML_LN2)
+#endif
+
+/* MATHLIB_CLOSURE_P2_P0_3_EXP_LIMITS */
+#ifndef ML_LOG_DBL_MAX
+#define ML_LOG_DBL_MAX 709.782712893384
+#endif
+
+#ifndef ML_LOG_UNDERFLOW
+#define ML_LOG_UNDERFLOW (-745.133219101941)
+#endif
+
 
 /* v11S CLOSURE IP-4: overflow-safe hyperbolics */
 
 ML_API double ml_exp(double x) {
-    /* MATHLIB_CLOSURE_P0_EXP_GUARD */
+    /* MATHLIB_CLOSURE_P2_P0_3_EXP_FUNC */
     if (ml_isnan(x)) return x;
     if (ml_isinf(x)) return (x > 0.0) ? ml_make_inf(0) : 0.0;
-
     if (x == 0.0) return 1.0;
-    if (x > 709.78) return ml_make_inf(0);
-    if (x < -745.13) return 0.0;
+
+    /*
+     * P0-3: use double-limit-aware thresholds.
+     *
+     * Old code used:
+     *
+     *   if (x > 709.78) return inf;
+     *   if (x < -745.13) return 0;
+     *
+     * Those thresholds were too conservative.
+     */
+    if (x > ML_LOG_DBL_MAX) {
+        return ml_make_inf(0);
+    }
+
+    if (x < ML_LOG_UNDERFLOW) {
+        return 0.0;
+    }
 
     double n = ml_round(x / ML_LN2);
     double r = x - n * 0.69314718036912381649 - n * 1.90821490974462528503e-10;
@@ -27,7 +60,9 @@ ML_API double ml_exp(double x) {
     };
 
     double result = inv_fact[19];
-    for (int i = 18; i >= 1; i--) result = ML_FMA(result, r, inv_fact[i]);
+    for (int i = 18; i >= 1; i--) {
+        result = ML_FMA(result, r, inv_fact[i]);
+    }
     result = ML_FMA(result, r, 1.0);
 
     return ml_ldexp_pure(result, (int)n);
@@ -63,7 +98,8 @@ ML_API double ml_log(double x) {
     poly = poly * z2 + 0.6666666666666666;
     poly = poly * z2 + 2.0;
 
-    return z * poly + e * ML_LN2;
+    /* MATHLIB_CLOSURE_P2_LOG_FMA_RECONSTRUCT */
+    return ML_FMA((double)e, ML_LN2, z * poly);
 }
 
 ML_API double ml_pow(double x, double y) {
@@ -134,38 +170,90 @@ ML_API double ml_logb(double x, double b) {
 }
 
 ML_API double ml_sinh(double x) {
-    /* MATHLIB_CLOSURE_P0_SINH_SMALL */
+    /* MATHLIB_CLOSURE_P2_P0_4_HYPERBOLIC_SHIFT */
     if (ml_isnan(x)) return x;
     if (ml_isinf(x)) return x;
 
     double ax = ml_fabs(x);
 
-    if (ax < 1e-4) return x;
+    if (ax < 1e-4) {
+        return x;
+    }
 
-    if (ax > 709.782712893384) {
+    /*
+     * sinh(x) is approximately:
+     *
+     *   0.5 * exp(x)
+     *
+     * for large positive x.
+     *
+     * Therefore overflow happens near:
+     *
+     *   log(DBL_MAX) + log(2)
+     *
+     * not merely log(DBL_MAX).
+     */
+    if (ax > ML_LOG_HYP_OVERFLOW) {
         return ml_make_inf(x < 0.0);
+    }
+
+    /*
+     * Near overflow, avoid computing exp(ax) directly.
+     *
+     * Since:
+     *
+     *   0.5 * exp(ax) = exp(ax - ln2)
+     *
+     * we can stay finite longer and avoid premature overflow.
+     */
+    if (ax > 700.0) {
+        double ep_half = ml_exp(ax - ML_LN2);
+        double em_half = ml_exp(-ax - ML_LN2);
+        double r = ep_half - em_half;
+        return (x < 0.0) ? -r : r;
     }
 
     double ep = ml_exp(ax);
     double em = ml_exp(-ax);
     double r = 0.5 * (ep - em);
-
     return (x < 0.0) ? -r : r;
 }
 
 ML_API double ml_cosh(double x) {
+    /* MATHLIB_CLOSURE_P2_P0_4_HYPERBOLIC_SHIFT */
     if (ml_isnan(x)) return x;
     if (ml_isinf(x)) return ml_make_inf(0);
 
     double ax = ml_fabs(x);
 
-    if (ax > 709.782712893384) {
+    /*
+     * cosh(x) is approximately:
+     *
+     *   0.5 * exp(x)
+     *
+     * for large |x|.
+     *
+     * Overflow happens near:
+     *
+     *   log(DBL_MAX) + log(2)
+     */
+    if (ax > ML_LOG_HYP_OVERFLOW) {
         return ml_make_inf(0);
+    }
+
+    /*
+     * Near overflow, use the shifted form:
+     *
+     *   0.5 * exp(ax) = exp(ax - ln2)
+     */
+    if (ax > 700.0) {
+        double ep_half = ml_exp(ax - ML_LN2);
+        double em_half = ml_exp(-ax - ML_LN2);
+        return ep_half + em_half;
     }
 
     double ep = ml_exp(ax);
     double em = ml_exp(-ax);
-
     return 0.5 * (ep + em);
 }
 
