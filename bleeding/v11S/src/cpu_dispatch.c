@@ -5,57 +5,60 @@
 #include <immintrin.h>
 #endif
 
-/* ============================================================================
- * SCALAR FALLBACK (Internal linkage - not exported)
- * ========================================================================== */
+/* MATHLIB_CLOSURE_P1_SIZE_T_INDEXING */
+
 static void ml_matmul_scalar(const double* ML_RESTRICT A, const double* ML_RESTRICT B, double* ML_RESTRICT C, int N) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    size_t n = (size_t)N;
+
+    for (size_t i = 0; i < n; i++) {
+        for (size_t j = 0; j < n; j++) {
             double sum = 0.0;
-            for (int k = 0; k < N; k++) {
-                sum += A[i * N + k] * B[k * N + j];
+            for (size_t k = 0; k < n; k++) {
+                sum += A[i * n + k] * B[k * n + j];
             }
-            C[i * N + j] = sum;
+            C[i * n + j] = sum;
         }
     }
 }
 
-/* ============================================================================
- * AVX2 HARDWARE KERNEL (Internal linkage - not exported)
- * ========================================================================== */
 #if ML_COMPILE_TIME_AVX2
 ML_TARGET_AVX2
 static void ml_matmul_avx2(const double* ML_RESTRICT A, const double* ML_RESTRICT B, double* ML_RESTRICT C, int N) {
-    for (int i = 0; i < N; i++) {
-        int j = 0;
-        /* Vectorized body for full 4-wide chunks */
-        for (; j <= N - 4; j += 4) {
+    size_t n = (size_t)N;
+
+    for (size_t i = 0; i < n; i++) {
+        size_t j = 0;
+
+        for (; j + 4 <= n; j += 4) {
             __m256d c_vec = _mm256_setzero_pd();
-            for (int k = 0; k < N; k++) {
-                __m256d a_vec = _mm256_broadcast_sd(&A[i * N + k]);
-                __m256d b_vec = _mm256_loadu_pd(&B[k * N + j]);
+
+            for (size_t k = 0; k < n; k++) {
+                __m256d a_vec = _mm256_broadcast_sd(&A[i * n + k]);
+                __m256d b_vec = _mm256_loadu_pd(&B[k * n + j]);
                 c_vec = _mm256_fmadd_pd(a_vec, b_vec, c_vec);
             }
-            _mm256_storeu_pd(&C[i * N + j], c_vec);
+
+            _mm256_storeu_pd(&C[i * n + j], c_vec);
         }
-        /* Scalar tail for remaining N % 4 elements (Prevents OOB write corruption) */
-        for (; j < N; j++) {
+
+        for (; j < n; j++) {
             double sum = 0.0;
-            for (int k = 0; k < N; k++) {
-                sum += A[i * N + k] * B[k * N + j];
+            for (size_t k = 0; k < n; k++) {
+                sum += A[i * n + k] * B[k * n + j];
             }
-            C[i * N + j] = sum;
+            C[i * n + j] = sum;
         }
     }
 }
 #endif
 
-/* ============================================================================
- * PUBLIC API: COMPILE-TIME DISPATCH
- * No function pointers. No lazy init. Zero data races.
- * ========================================================================== */
 ML_API void ml_matmul(const double* ML_RESTRICT A, const double* ML_RESTRICT B, double* ML_RESTRICT C, int N) {
     if (ML_UNLIKELY(A == NULL || B == NULL || C == NULL || N <= 0)) return;
+
+    size_t n = (size_t)N;
+
+    /* Defensive guard against index-space overflow. */
+    if (ML_UNLIKELY(n > ((size_t)-1) / n)) return;
 
 #if ML_COMPILE_TIME_AVX2
     ml_matmul_avx2(A, B, C, N);
@@ -64,10 +67,6 @@ ML_API void ml_matmul(const double* ML_RESTRICT A, const double* ML_RESTRICT B, 
 #endif
 }
 
-/* ============================================================================
- * PUBLIC API: CAPABILITY QUERIES
- * Pure compile-time constants. Allows user code to check features safely.
- * ========================================================================== */
 ML_API int ml_cpu_has_avx2(void) {
     return ML_COMPILE_TIME_AVX2;
 }

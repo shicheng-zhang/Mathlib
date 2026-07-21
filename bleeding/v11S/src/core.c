@@ -68,7 +68,7 @@ ML_API double ml_frexp_pure(double x, int *exp) {
 }
 
 ML_API double ml_fmod(double x, double y) {
-    /* v11S CLOSURE HOTFIX: exact fmod for all finite nonzero inputs */
+    /* v11S AUDIT IP-1: exact fmod for all finite nonzero inputs */
     if (ml_isnan(x) || ml_isnan(y) || ml_isinf(x)) return ml_make_nan();
     if (ml_isinf(y)) return x;
     if (y == 0.0) return ml_make_nan();
@@ -87,25 +87,28 @@ ML_API double ml_fmod(double x, double y) {
 
     int d = px.exp - py.exp;
 
-    /*
-     * Defensive fallback.
-     *
-     * For finite nonzero values with |x| >= |y|, the exact significand model
-     * should give d >= 0. If this ever triggers, the quotient is small enough
-     * that this fallback remains safe.
-     */
     if (d < 0) {
-        long long q = (long long)(ax / ay);
-        double rem = ax - (double)q * ay;
+        int sd = -d;
 
-        if (rem < 0.0) rem += ay;
-        if (rem >= ay) rem -= ay;
+        /*
+         * For |x| >= |y| this should not happen except in exotic subnormal
+         * alignments. If it does, align y to x's exponent exactly when safe.
+         */
+        if (sd >= 64 || py.sig > (UINT64_MAX >> sd)) {
+            return ml_make_nan();
+        }
 
-        return ml_copysign(rem, x);
+        uint64_t ysig = py.sig << sd;
+        uint64_t rem = px.sig % ysig;
+
+        return ml_fp_compose(rem, px.exp, ml_signbit(x));
     }
 
     uint64_t rem = px.sig % py.sig;
-    if (rem == 0) return ml_copysign(0.0, x);
+
+    if (rem == 0) {
+        return ml_copysign(0.0, x);
+    }
 
     for (int i = 0; i < d; i++) {
         rem <<= 1;

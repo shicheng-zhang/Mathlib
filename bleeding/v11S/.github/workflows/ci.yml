@@ -9,6 +9,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         compiler: [gcc, clang]
@@ -16,31 +17,35 @@ jobs:
         sanitizer: [none, asan]
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Configure CMake
-      run: |
-        SANITIZER_FLAG=""
-        if [ "${{ matrix.sanitizer }}" == "asan" ]; then
-          SANITIZER_FLAG="-DMATHLIB_SANITIZERS=ON"
-        fi
-        cmake -B build -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DMATHLIB_PROFILE=${{ matrix.profile }} $SANITIZER_FLAG
+      - name: Configure CMake
+        run: |
+          SANITIZER_FLAG=""
+          if [ "${{ matrix.sanitizer }}" == "asan" ]; then
+            SANITIZER_FLAG="-DMATHLIB_SANITIZERS=ON"
+          fi
+          cmake -B build -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DMATHLIB_PROFILE=${{ matrix.profile }} $SANITIZER_FLAG
 
-    - name: Build
-      run: cmake --build build
+      - name: Build
+        run: cmake --build build
 
-    - name: Run Smoke Tests
-      run: ./build/test
+      - name: Run Smoke Tests
+        run: ./build/test
 
-    - name: Run Modular CI/CD Tests
-      run: |
-        ./build/test_core
-        ./build/test_trig
-        ./build/test_linalg
-        ./build/test_dsp
+      - name: Run Modular CI/CD Tests
+        run: |
+          ./build/test_core
+          ./build/test_trig
+          ./build/test_linalg
+          ./build/test_dsp
 
-    - name: Run Boundary Gauntlet
-      run: ./build/fuzz_boundary
+      # MATHLIB_CLOSURE_P1_CI_DETERMINISTIC
+      - name: Run Edge Tests
+        run: bash tests/run_edge_tests.sh
 
-    - name: Quick Fuzz (100 iterations)
-      run: ./build/fuzz_god_mode
+      - name: Run Boundary Gauntlet
+        run: ./build/fuzz_boundary
+
+      - name: Quick Fuzz (deterministic)
+        run: ./build/fuzz_god_mode 123456789

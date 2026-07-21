@@ -4,16 +4,9 @@
 #include "ml_core.h"
 
 /*
- * Internal overflow-safe hypotenuse.
+ * Overflow-safe hypotenuse.
  *
  * Computes sqrt(x*x + y*y) without unnecessary overflow/underflow.
- * This is used by:
- *   - asinh
- *   - acosh
- *   - complex absolute value
- *
- * This is intentionally internal for v11S closure. A public ml_hypot
- * may be added in v12 if desired.
  */
 static inline double ml_hypot_internal(double x, double y) {
     if (ml_isinf(x) || ml_isinf(y)) return ml_make_inf(0);
@@ -34,4 +27,4 @@ static inline double ml_hypot_internal(double x, double y) {
     return ax * ml_sqrt(1.0 + r * r);
 }
 
-#endif /* ML_INTERNAL_HYPOT_H */
+#endif

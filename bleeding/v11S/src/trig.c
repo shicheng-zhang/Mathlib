@@ -71,8 +71,11 @@ ML_API double ml_acot(double x) {
 /* FIX: Strict IEEE-754 Annex F compliance for signed zeros and Infinities.
  * ml_atan2(+0.0, -0.0) now correctly returns PI instead of 0.0. */
 ML_API double ml_atan2(double y, double x) {
-    int y_neg = ml_copysign(1.0, y) < 0;
-    int x_neg = ml_copysign(1.0, x) < 0;
+    /* v11S AUDIT IP-2: NaN propagation + signed-zero / infinity fixes */
+    if (ml_isnan(x) || ml_isnan(y)) return ml_make_nan();
+
+    int y_neg = ml_signbit(y);
+    int x_neg = ml_signbit(x);
     int y_zero = (y == 0.0);
     int x_zero = (x == 0.0);
 
@@ -82,20 +85,39 @@ ML_API double ml_atan2(double y, double x) {
         if (!y_neg && x_neg) return ML_PI;
         return 0.0;
     }
-    if (x_zero) return y_neg ? -ML_PI / 2.0 : ML_PI / 2.0;
-    if (y_zero) return x_neg ? ML_PI : 0.0;
+
+    if (x_zero) {
+        return y_neg ? -ML_PI / 2.0 : ML_PI / 2.0;
+    }
+
+    if (y_zero) {
+        if (x_neg) return y_neg ? -ML_PI : ML_PI;
+        return y_neg ? -0.0 : 0.0;
+    }
 
     if (ml_isinf(x) && ml_isinf(y)) {
         double pi_4 = ML_PI / 4.0;
+
         if (y_neg && x_neg) return -3.0 * pi_4;
         if (y_neg && !x_neg) return -pi_4;
         if (!y_neg && x_neg) return 3.0 * pi_4;
         return pi_4;
     }
-    if (ml_isinf(x)) return x_neg ? (y_neg ? -ML_PI : ML_PI) : 0.0;
-    if (ml_isinf(y)) return y_neg ? -ML_PI / 2.0 : ML_PI / 2.0;
+
+    if (ml_isinf(x)) {
+        if (x_neg) return ml_copysign(ML_PI, y);
+        return ml_copysign(0.0, y);
+    }
+
+    if (ml_isinf(y)) {
+        return y_neg ? -ML_PI / 2.0 : ML_PI / 2.0;
+    }
 
     double a = ml_atan(y / x);
-    if (x_neg) return y_neg ? a - ML_PI : a + ML_PI;
+
+    if (x_neg) {
+        return y_neg ? a - ML_PI : a + ML_PI;
+    }
+
     return a;
 }

@@ -30,10 +30,15 @@
  *   - positive finite -> approximate rsqrt
  */
 ML_INLINE double ml_fast_rsqrt(double number) {
+    /* v11S AUDIT IP-1: positive subnormal fallback */
     if (ml_isnan(number)) return number;
     if (number < 0.0) return ml_make_nan();
     if (ml_isinf(number)) return 0.0;
     if (number == 0.0) return ml_copysign(ml_make_inf(0), number);
+
+    if (ml_is_subnormal(number)) {
+        return 1.0 / ml_sqrt(number);
+    }
 
     uint64_t bits;
     memcpy(&bits, &number, sizeof(uint64_t));
@@ -43,7 +48,6 @@ ML_INLINE double ml_fast_rsqrt(double number) {
     double y;
     memcpy(&y, &bits, sizeof(double));
 
-    /* Two iterations of Newton-Raphson for 64-bit double precision */
     y = y * (1.5 - (number * 0.5 * y * y));
     return y * (1.5 - (number * 0.5 * y * y));
 }

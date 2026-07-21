@@ -1,23 +1,19 @@
 #include "ml_compiler.h"
 #include "ml_exp_log.h"
 #include "internal/hypot.h"
+#include "internal/pow_util.h"
 
-/* ============================================================================
- * v11S CLOSURE: EXP / LOG / POW / HYPERBOLIC EDGE-CASE REPAIR
- *
- * This file has been rewritten to remove naive overflow traps and
- * incomplete special-case behavior.
- * ========================================================================== */
+/* v11S CLOSURE IP-4: overflow-safe hyperbolics */
 
 ML_API double ml_exp(double x) {
+    /* MATHLIB_CLOSURE_P0_EXP_GUARD */
     if (ml_isnan(x)) return x;
-    if (ml_isinf(x)) return x > 0.0 ? ml_make_inf(0) : 0.0;
+    if (ml_isinf(x)) return (x > 0.0) ? ml_make_inf(0) : 0.0;
 
     if (x == 0.0) return 1.0;
-    if (x > 709.782712893384) return ml_make_inf(0);
-    if (x < -745.133219101941) return 0.0;
+    if (x > 709.78) return ml_make_inf(0);
+    if (x < -745.13) return 0.0;
 
-    /* Cody-Waite extended precision reduction */
     double n = ml_round(x / ML_LN2);
     double r = x - n * 0.69314718036912381649 - n * 1.90821490974462528503e-10;
 
@@ -31,26 +27,23 @@ ML_API double ml_exp(double x) {
     };
 
     double result = inv_fact[19];
-    for (int i = 18; i >= 1; i--) {
-        result = ML_FMA(result, r, inv_fact[i]);
-    }
+    for (int i = 18; i >= 1; i--) result = ML_FMA(result, r, inv_fact[i]);
     result = ML_FMA(result, r, 1.0);
 
     return ml_ldexp_pure(result, (int)n);
 }
 
 ML_API double ml_log(double x) {
+    /* MATHLIB_CLOSURE_P0_LOG_GUARD */
     if (ml_isnan(x)) return x;
-    if (ml_isinf(x)) return x > 0.0 ? ml_make_inf(0) : ml_make_nan();
-
     if (x == 0.0) return -ml_make_inf(0);
     if (x < 0.0) return ml_make_nan();
+    if (ml_isinf(x)) return x;
     if (x == 1.0) return 0.0;
 
     int e;
     double m = ml_frexp_pure(x, &e);
 
-    /* Branchless sqrt(2) balancing */
     int adjust = (m < 0.7071067811865475);
     m *= (1.0 + adjust);
     e -= adjust;
@@ -58,7 +51,6 @@ ML_API double ml_log(double x) {
     double z = (m - 1.0) / (m + 1.0);
     double z2 = z * z;
 
-    /* Horner evaluation for 2 * atanh(z) */
     double poly = 0.09523809523809523;
     poly = poly * z2 + 0.10526315789473684;
     poly = poly * z2 + 0.11764705882352941;
@@ -74,117 +66,81 @@ ML_API double ml_log(double x) {
     return z * poly + e * ML_LN2;
 }
 
-/*
- * Integer detection helper for pow().
- *
- * For |y| >= 2^52, every finite double is an integer, and all such
- * representable integers are even. Therefore odd = 0 in that range.
- */
-static int ml_is_integer_double(double y, int *is_odd) {
-    if (ml_isnan(y) || ml_isinf(y)) {
-        *is_odd = 0;
-        return 0;
-    }
-
-    if (ml_fabs(y) >= 4503599627370496.0) {
-        *is_odd = 0;
-        return 1;
-    }
-
-    double r = ml_round(y);
-    if (r != y) {
-        *is_odd = 0;
-        return 0;
-    }
-
-    long long yi = (long long)r;
-    *is_odd = (int)(yi & 1LL);
-    return 1;
-}
-
 ML_API double ml_pow(double x, double y) {
-    /* C99-style special cases first */
-    if (y == 0.0) return 1.0;
-    if (x == 1.0) return 1.0;
-
-    if (ml_isnan(x) || ml_isnan(y)) {
+    /* MATHLIB_CLOSURE_P0_POW_TREE */
+    if (ml_isnan(y)) {
+        if (x == 1.0) return 1.0;
         return ml_make_nan();
     }
 
-    int odd = 0;
-    int y_is_int = ml_is_integer_double(y, &odd);
+    if (y == 0.0) return 1.0;
+    if (ml_isnan(x)) return ml_make_nan();
+    if (x == 1.0) return 1.0;
+
+    if (x == 0.0) {
+        if (ml_isinf(y)) {
+            return (y > 0.0) ? 0.0 : ml_make_inf(0);
+        }
+
+        if (y > 0.0) {
+            if (ml_signbit(x) && ml_is_odd_integer_double(y)) {
+                return ml_copysign(0.0, -1.0);
+            }
+            return 0.0;
+        }
+
+        if (ml_signbit(x) && ml_is_odd_integer_double(y)) {
+            return -ml_make_inf(0);
+        }
+        return ml_make_inf(0);
+    }
 
     if (ml_isinf(y)) {
         double ax = ml_fabs(x);
         if (ax == 1.0) return 1.0;
-
-        if (y > 0.0) {
-            return (ax > 1.0) ? ml_make_inf(0) : 0.0;
-        } else {
-            return (ax > 1.0) ? 0.0 : ml_make_inf(0);
-        }
+        if (y > 0.0) return (ax > 1.0) ? ml_make_inf(0) : 0.0;
+        return (ax > 1.0) ? 0.0 : ml_make_inf(0);
     }
 
     if (ml_isinf(x)) {
-        if (y > 0.0) {
-            return (x < 0.0 && odd) ? -ml_make_inf(0) : ml_make_inf(0);
-        } else {
-            return (x < 0.0 && odd) ? -0.0 : 0.0;
+        if (x > 0.0) {
+            return (y > 0.0) ? ml_make_inf(0) : 0.0;
         }
-    }
 
-    if (x == 0.0) {
-        /*
-         * x < 0.0 is false for -0.0, so use ml_signbit()
-         * to correctly preserve signed-zero semantics.
-         */
-        int x_neg = ml_signbit(x);
+        if (!ml_is_integer_double(y)) return ml_make_nan();
 
         if (y > 0.0) {
-            return (x_neg && y_is_int && odd) ? -0.0 : 0.0;
-        } else {
-            return (x_neg && y_is_int && odd) ? -ml_make_inf(0) : ml_make_inf(0);
+            return ml_is_odd_integer_double(y) ? -ml_make_inf(0) : ml_make_inf(0);
         }
+
+        return ml_is_odd_integer_double(y) ? ml_copysign(0.0, -1.0) : 0.0;
     }
 
     if (x < 0.0) {
-        if (!y_is_int) return ml_make_nan();
+        if (!ml_is_integer_double(y)) return ml_make_nan();
 
-        double mag = ml_exp(y * ml_log(-x));
-        return odd ? -mag : mag;
+        double ax = -x;
+        double mag = ml_exp(y * ml_log(ax));
+
+        if (ml_is_odd_integer_double(y)) return -mag;
+        return mag;
     }
 
     return ml_exp(y * ml_log(x));
 }
 
 ML_API double ml_logb(double x, double b) {
-    if (ml_isnan(x) || ml_isnan(b)) return ml_make_nan();
-    if (b <= 0.0 || b == 1.0) return ml_make_nan();
-    if (x < 0.0) return ml_make_nan();
-
-    if (ml_isinf(b)) {
-        return ml_isinf(x) ? ml_make_nan() : 0.0;
-    }
-
-    double lb = ml_log(b);
-
-    if (x == 0.0) {
-        return ml_make_inf(lb > 0.0 ? 1 : 0);
-    }
-
-    if (ml_isinf(x)) {
-        return ml_make_inf(lb > 0.0 ? 0 : 1);
-    }
-
-    return ml_log(x) / lb;
+    return ml_log(x) / ml_log(b);
 }
 
 ML_API double ml_sinh(double x) {
+    /* MATHLIB_CLOSURE_P0_SINH_SMALL */
     if (ml_isnan(x)) return x;
     if (ml_isinf(x)) return x;
 
     double ax = ml_fabs(x);
-    if (ax == 0.0) return x;
+
+    if (ax < 1e-4) return x;
 
     if (ax > 709.782712893384) {
         return ml_make_inf(x < 0.0);
@@ -230,29 +186,20 @@ ML_API double ml_tanh(double x) {
 }
 
 ML_API double ml_asinh(double x) {
+    /* MATHLIB_CLOSURE_P0_ASINH_LARGE */
     if (ml_isnan(x) || ml_isinf(x)) return x;
 
     double ax = ml_fabs(x);
-
     if (ax == 0.0) return x;
     if (ax < 1e-4) return x;
 
-    double r;
-
-    /*
-     * For huge finite inputs, ax + hypot(ax, 1) can overflow to +Inf
-     * even though asinh(x) itself is finite.
-     *
-     * Use the asymptotic form:
-     *   asinh(x) ~= log(2|x|) = log|x| + log(2)
-     */
     if (ax > 1e150) {
-        r = ml_log(ax) + ML_LN2;
-    } else {
-        r = ml_log(ax + ml_hypot_internal(ax, 1.0));
+        double r = ml_log(2.0) + ml_log(ax);
+        return (x < 0.0) ? -r : r;
     }
 
-    return ml_copysign(r, x);
+    double r = ml_log(ax + ml_hypot_internal(ax, 1.0));
+    return (x < 0.0) ? -r : r;
 }
 
 ML_API double ml_acosh(double x) {
@@ -271,7 +218,6 @@ ML_API double ml_acosh(double x) {
 ML_API double ml_atanh(double x) {
     if (ml_isnan(x)) return x;
     if (x <= -1.0 || x >= 1.0) return ml_make_nan();
-
     if (ml_fabs(x) < 1e-4) return x;
 
     return 0.5 * ml_log((1.0 + x) / (1.0 - x));
